@@ -54,11 +54,11 @@
       <section class="hero" id="inicio">
         <div class="container hero-grid">
           <div class="hero-copy">
-            <span class="eyebrow">Nuevo drop / edición limitada</span>
-            <h1>Estilo urbano, piezas premium y compra directa.</h1>
+            <span class="eyebrow">CZR0 · archieve streetwear</span>
+            <h1>Ropa vintage y archive streetwear con identidad.</h1>
             <p>
-              F-ck Face reúne camisas, pantalones, abrigos y nuevas piezas con un
-              enfoque minimalista, funcional y 100% pensado para la calle.
+              F-ck Face se mueve en el mismo universo visual de Cauzer Store: piezas raras,
+              estilo callejero, drops semanales y una estética que mezcla vintage con fuerza urbana.
             </p>
 
             <div class="hero-actions">
@@ -67,85 +67,177 @@
                 href="https://wa.me/50663620357?text=Hola%2C%20quiero%20ver%20el%20catalogo%20de%20F-ck%20Face"
                 target="_blank"
                 rel="noopener"
-                >Ver catálogo</a
+                >Explorar catálogo</a
               >
-              <a class="btn btn-secondary" href="#catalogo">Explorar</a>
+              <a class="btn btn-secondary" href="#catalogo">Ver colección</a>
             </div>
 
             <ul class="hero-meta" aria-label="Indicadores del negocio">
-              <li>Compra por WhatsApp</li>
-              <li>Ediciones limitadas</li>
               <li>Envíos a todo el país</li>
+              <li>Cuotas sin interés</li>
+              <li>Drops semanales</li>
             </ul>
           </div>
 
           <div class="hero-visual" aria-label="Vista previa del estilo de la marca">
             <div class="visual-card large">
-              <span class="card-tag">Drop 04</span>
+              <span class="card-tag">Próximo drop</span>
               <div class="image-slot image-slot-main">
-                <span>Espacio para imagen principal</span>
+                <span>Imagen principal</span>
               </div>
               <div class="visual-copy">
-                <strong>Essential Layer</strong>
-                <small>Camisa / Abrigo / Pantalón</small>
+                <strong>Archive Layer</strong>
+                <small>Camperas / Buzos / Remeras</small>
               </div>
             </div>
 
             <div class="stacked-cards">
               <div class="visual-card mini">
-                <span class="mini-label">New pieces</span>
+                <span class="mini-label">Novedades</span>
                 <div class="image-slot image-slot-small">
                   <span>Foto</span>
                 </div>
-                <strong>Urban Fit</strong>
+                <strong>New fit</strong>
               </div>
               <div class="visual-card mini tone">
-                <span class="mini-label">Streetwear</span>
+                <span class="mini-label">Lifestyle</span>
                 <div class="image-slot image-slot-small alt">
                   <span>Foto</span>
                 </div>
-                <strong>Minimal</strong>
+                <strong>Street edit</strong>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      <section class="promo-strip">
+        <div class="container promo-row">
+          <span>Envíos a todo el país</span>
+          <span>Todos los métodos de pago</span>
+          <span>Cuotas sin interés</span>
+          <span>Drops semanales</span>
+        </div>
+      </section>
+
       <section class="catalog-section" id="catalogo">
         <div class="container">
-          <div class="section-heading">
-            <p class="eyebrow eyebrow-dark">Categorías</p>
-            <h2>Lo esencial de la colección.</h2>
+          <div class="section-heading split">
+            <div>
+              <p class="eyebrow eyebrow-dark">Explora</p>
+              <h2>Ver todo</h2>
+            </div>
+            <a class="text-link" href="#coleccion">Ver colección</a>
           </div>
 
-          <div class="category-grid">
-            <article class="category-card">
-              <span class="category-index">01</span>
-              <h3>Camisas</h3>
-              <p>Recortes limpios, texturas premium y una estética sobria que funciona todos los días.</p>
-              <a href="#catalogo">Ver piezas</a>
-            </article>
+          <div class="category-carousel-shell">
+            <button class="carousel-nav prev" type="button" aria-label="Anterior">←</button>
+            <div class="category-carousel" id="categoryCarousel">
+              <article class="category-card" data-category="camperas">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">01</span>
+                  <h3>Camperas</h3>
+                  <p>Líneas duras, acabados vintage y siluetas que marcan presencia.</p>
+                  <a href="#coleccion">Ver colección</a>
+                </div>
+              </article>
 
-            <article class="category-card">
-              <span class="category-index">02</span>
-              <h3>Pantalones</h3>
-              <p>Silhouette moderna, cortes relajados y detalles funcionales para una propuesta urbana.</p>
-              <a href="#catalogo">Ver piezas</a>
-            </article>
+              <article class="category-card" data-category="buzos">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">02</span>
+                  <h3>Buzos</h3>
+                  <p>Capas funcionales con actitud, pensadas para uso diario y estilo urbano.</p>
+                  <a href="#coleccion">Ver colección</a>
+                </div>
+              </article>
 
-            <article class="category-card">
-              <span class="category-index">03</span>
-              <h3>Abrigos</h3>
-              <p>Capas de abrigo con identidad, pensadas para el frío y para completar el outfit.</p>
-              <a href="#catalogo">Ver piezas</a>
-            </article>
+              <article class="category-card" data-category="remeras">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">03</span>
+                  <h3>Remeras</h3>
+                  <p>Estampados, cortes clásicos y referencias de archivo con un trato premium.</p>
+                  <a href="#coleccion">Ver colección</a>
+                </div>
+              </article>
 
-            <article class="category-card accent-card">
-              <span class="category-index">04</span>
-              <h3>Piezas nuevas</h3>
-              <p>Ingresos frescos para la colección con un perfil visual más contemporáneo.</p>
-              <a href="#catalogo">Ver nueva drop</a>
-            </article>
+              <article class="category-card" data-category="pantalones">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">04</span>
+                  <h3>Pantalones</h3>
+                  <p>Relajados, sobrios y muy funcionales para armar un outfit completo.</p>
+                  <a href="#coleccion">Ver colección</a>
+                </div>
+              </article>
+
+              <article class="category-card" data-category="zapatillas">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">05</span>
+                  <h3>Zapatillas</h3>
+                  <p>Un mix entre archive, runners y referencias que se vuelven hit del día.</p>
+                  <a href="#coleccion">Ver colección</a>
+                </div>
+              </article>
+
+              <article class="category-card" data-category="accesorios">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">06</span>
+                  <h3>Accesorios</h3>
+                  <p>Detalles pequeños que elevan el conjunto y completan la identidad visual.</p>
+                  <a href="#coleccion">Ver colección</a>
+                </div>
+              </article>
+
+              <article class="category-card" data-category="chalecos">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">07</span>
+                  <h3>Chalecos</h3>
+                  <p>Prendas de capas con personalidad, fáciles de combinar y muy resistentes.</p>
+                  <a href="#coleccion">Ver colección</a>
+                </div>
+              </article>
+
+              <article class="category-card accent-card" data-category="tracksuit">
+                <div
+                  class="category-image"
+                  style="background-image: url('https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80');"
+                ></div>
+                <div class="category-content">
+                  <span class="category-index">08</span>
+                  <h3>Tracksuit</h3>
+                  <p>Look total y contundente para la hora del drop más esperado del mes.</p>
+                  <a href="#coleccion">Ver nueva drop</a>
+                </div>
+              </article>
+            </div>
+            <button class="carousel-nav next" type="button" aria-label="Siguiente">→</button>
           </div>
         </div>
       </section>
@@ -154,67 +246,78 @@
         <div class="container">
           <div class="section-heading split">
             <div>
-              <p class="eyebrow eyebrow-dark">Featured</p>
-              <h2>Moda funcional con presencia.</h2>
+              <p class="eyebrow eyebrow-dark">Destacados</p>
+              <h2>Ver todo</h2>
             </div>
             <a class="text-link" href="#contacto">Solicitar drop</a>
           </div>
 
           <div class="filters" aria-label="Filtros de catálogo">
             <button class="filter-btn active" data-filter="all">Todo</button>
-            <button class="filter-btn" data-filter="camisas">Camisas</button>
-            <button class="filter-btn" data-filter="abrigos">Abrigos</button>
+            <button class="filter-btn" data-filter="camperas">Camperas</button>
+            <button class="filter-btn" data-filter="buzos">Buzos</button>
+            <button class="filter-btn" data-filter="remeras">Remeras</button>
             <button class="filter-btn" data-filter="pantalones">Pantalones</button>
-            <button class="filter-btn" data-filter="newdrop">Piezas nuevas</button>
+            <button class="filter-btn" data-filter="zapatillas">Zapatillas</button>
           </div>
 
           <div class="product-grid" id="productGrid"></div>
         </div>
       </section>
 
-      <section class="process-section" id="proceso">
-        <div class="container">
-          <div class="section-heading">
-            <p class="eyebrow eyebrow-dark">Cómo funciona</p>
-            <h2>Compra simple, ágil y directa.</h2>
-          </div>
-
-          <div class="process-grid">
-            <article class="process-card">
-              <span>01</span>
-              <h3>Explora el catálogo</h3>
-              <p>Revisa las prendas que están activas y elige la pieza que te interesa.</p>
-            </article>
-
-            <article class="process-card">
-              <span>02</span>
-              <h3>Consulta por WhatsApp</h3>
-              <p>Confirmas talla, estado y detalles para asegurar que la pieza siga disponible.</p>
-            </article>
-
-            <article class="process-card">
-              <span>03</span>
-              <h3>Pago y envío</h3>
-              <p>Se realiza la compra por el canal indicado y se coordina la entrega rápida.</p>
-            </article>
+      <section class="preview-section">
+        <div class="container preview-box">
+          <div class="preview-copy">
+            <p class="eyebrow">Preview</p>
+            <h2>Próximo drop “NIKE ACG”</h2>
+            <div class="countdown" aria-label="Cuenta regresiva">
+              <div><strong>06</strong><span>Días</span></div>
+              <div><strong>23</strong><span>Horas</span></div>
+              <div><strong>41</strong><span>Min</span></div>
+              <div><strong>38</strong><span>Seg</span></div>
+            </div>
+            <p>Acceso anticipado a productos exclusivos. Suscríbete con tu email y te avisamos cuando salga.</p>
+            <form class="email-form">
+              <input type="email" placeholder="Tu email" aria-label="Tu email" />
+              <button type="submit">Quiero el acceso</button>
+            </form>
           </div>
         </div>
       </section>
 
-      <section class="cta-section" id="contacto">
-        <div class="container cta-box">
-          <div>
-            <p class="eyebrow eyebrow-dark">WhatsApp</p>
-            <h2>Listo para tu próxima pieza.</h2>
+      <section class="showroom-section" id="proceso">
+        <div class="container showroom-grid">
+          <div class="showroom-copy">
+            <p class="eyebrow eyebrow-dark">Showroom</p>
+            <h2>Archivo · Rack 01</h2>
+            <h3>Jerseys · Rack 02</h3>
+            <p>
+              Visitá el showroom en Caballito, CABA, solo con cita previa. Ahí podés ver,
+              tocar y probar casi todo nuestro archivo antes de llevártelo.
+            </p>
+            <a class="btn btn-primary" href="https://wa.me/50663620357?text=Hola%2C%20quiero%20reservar%20una%20cita%20al%20showroom" target="_blank" rel="noopener">Reservar mi cita</a>
           </div>
 
-          <a
-            class="btn btn-primary"
-            href="https://wa.me/50663620357?text=Hola%2C%20quiero%20consultar%20sobre%20las%20prendas%20de%20F-ck%20Face"
-            target="_blank"
-            rel="noopener"
-            >Escribir por WhatsApp</a
-          >
+          <div class="showroom-card">
+            <div class="showroom-visual">
+              <span>Archive</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="events-section" id="contacto">
+        <div class="container">
+          <div class="section-heading split">
+            <div>
+              <p class="eyebrow eyebrow-dark">Eventos</p>
+              <h2>Próximamente</h2>
+            </div>
+          </div>
+          <div class="event-box">
+            <p>Estamos preparando experiencias presenciales en Buenos Aires. Registrate arriba para enterarte primero.</p>
+            <button type="button" class="btn btn-primary">Registrarme</button>
+          </div>
         </div>
       </section>
     </main>
@@ -225,21 +328,56 @@
         <button class="modal-close" data-close-modal aria-label="Cerrar">×</button>
         <div class="modal-content">
           <div class="modal-media">
-            <span class="modal-badge" id="modalBadge"></span>
-            <div class="modal-visual" id="modalVisual"></div>
+            <div class="modal-gallery-shell">
+              <div class="modal-gallery-main">
+                <img id="modalMainImage" src="" alt="Imagen principal del producto" />
+              </div>
+              <div class="gallery-thumbs" id="galleryThumbs"></div>
+            </div>
           </div>
+
           <div class="modal-info">
+            <div class="modal-topline">
+              <span class="modal-badge" id="modalBadge"></span>
+              <button class="copy-link-btn" type="button">Copiar link</button>
+            </div>
+
             <p class="modal-kicker" id="modalKicker"></p>
             <h3 id="modalTitle"></h3>
-            <p id="modalDescription"></p>
+
+            <div class="price-stack">
+              <div class="price-row">
+                <span class="old-price" id="modalOldPrice"></span>
+                <span class="price-current" id="modalPrice"></span>
+              </div>
+              <p class="promo-note" id="modalPromo"></p>
+              <p class="installment-note" id="modalInstallments"></p>
+            </div>
+
             <div class="detail-list">
               <div><span>Marca</span><strong id="modalBrand"></strong></div>
-              <div><span>Talla</span><strong id="modalSize"></strong></div>
+              <div><span>Talle</span><strong id="modalSize"></strong></div>
               <div><span>Estado</span><strong id="modalCondition"></strong></div>
-              <div><span>Precio</span><strong id="modalPrice"></strong></div>
+              <div><span>SKU</span><strong id="modalSku"></strong></div>
             </div>
+
             <div class="modal-actions">
-              <a id="modalWhatsapp" class="btn btn-primary" href="#" target="_blank" rel="noopener">Contactar</a>
+              <a id="modalWhatsapp" class="btn btn-primary" href="#" target="_blank" rel="noopener">Consultar</a>
+            </div>
+
+            <div class="feature-block">
+              <h4>Estado de la pieza</h4>
+              <p id="modalConditionText"></p>
+            </div>
+
+            <div class="feature-block">
+              <h4>Medidas</h4>
+              <p id="modalMeasures"></p>
+            </div>
+
+            <div class="feature-block feature-block--muted">
+              <h4>Descripción</h4>
+              <p id="modalDescription"></p>
             </div>
           </div>
         </div>
