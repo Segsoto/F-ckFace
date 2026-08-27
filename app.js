@@ -1,20 +1,184 @@
 (function () {
   const config = window.FUCK_FACE_CONFIG;
-  const whatsapp = config?.whatsappNumber || '50689652370';
-  const client = config?.url && config?.anonKey && window.supabase ? window.supabase.createClient(config.url, config.anonKey) : null;
-  const newDropGrid = document.getElementById('newDropGrid'); const productGrid = document.getElementById('productGrid'); const filterContainer = document.getElementById('categoryFilters'); const dialog = document.getElementById('productDialog');
-  let products = [], activeCategory = 'all', dropTimer;
-  const categories = ['camisas','pantalones','abrigos','buzos','accesorios','otros'];
-  function currency(value) { return new Intl.NumberFormat('es-CR', { style:'currency', currency:'CRC', maximumFractionDigits:0 }).format(value || 0); }
-  function escapeHtml(value='') { const el=document.createElement('div'); el.textContent=value; return el.innerHTML; }
-  function whatsappLink(product) { const message = product ? `Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?` : 'Hola, quiero consultar por las piezas disponibles de F-ck Face.'; return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`; }
-  document.querySelectorAll('[data-whatsapp="general"]').forEach(link => link.href = whatsappLink());
-  function card(product) { const image = product.image_urls?.[0] || 'img/logo1.jpg'; return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy"><span class="product-label">${escapeHtml(product.category || 'PIEZA')}</span></div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || 'TALLA ÚNICA')} · ${escapeHtml(product.condition || 'BUEN ESTADO')}</p></div><strong class="product-price">${currency(product.price)}</strong></div></article>`; }
-  function render() { const released = products.filter(p => p.status === 'published'); const visible = activeCategory === 'all' ? released : released.filter(p => p.category === activeCategory); newDropGrid.innerHTML = products.filter(p => p.status === 'new_drop').map(card).join('') || '<p class="empty-state">LAS NUEVAS PIEZAS CAERÁN PRONTO.</p>'; productGrid.innerHTML = visible.map(card).join('') || '<p class="empty-state">NO HAY PIEZAS EN ESTA SECCIÓN TODAVÍA.</p>'; }
-  function renderFilters() { categories.forEach(category => { const button=document.createElement('button'); button.className='filter'; button.dataset.category=category; button.textContent=category.toUpperCase(); filterContainer.append(button); }); filterContainer.addEventListener('click', event => { const button=event.target.closest('[data-category]'); if (!button) return; activeCategory=button.dataset.category; filterContainer.querySelectorAll('.filter').forEach(item=>item.classList.toggle('active', item===button)); render(); }); }
-  function openProduct(product) { document.getElementById('dialogImage').src=product.image_urls?.[0] || 'img/logo1.jpg'; document.getElementById('dialogImage').alt=product.name; document.getElementById('dialogCategory').textContent=product.category || 'PIEZA'; document.getElementById('dialogName').textContent=product.name; document.getElementById('dialogPrice').textContent=currency(product.price); document.getElementById('dialogDescription').textContent=product.description || 'Consultá por esta pieza para más detalles.'; document.getElementById('dialogSize').textContent=product.size || '—'; document.getElementById('dialogCondition').textContent=product.condition || '—'; document.getElementById('dialogWhatsapp').href=whatsappLink(product); dialog.showModal(); }
-  document.addEventListener('click', event => { const cardEl=event.target.closest('.product-card'); if (cardEl) openProduct(products.find(p=>p.id===cardEl.dataset.id)); }); document.querySelector('.dialog-close').addEventListener('click',()=>dialog.close()); dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
-  function updateCountdown(drop) { clearInterval(dropTimer); const state=document.getElementById('countdownState'); document.getElementById('dropDescription').textContent=drop?.description || 'Las próximas piezas están por caer. Volvé pronto.'; if(!drop?.release_at){ ['Days','Hours','Minutes','Seconds'].forEach(k=>document.getElementById(`count${k}`).textContent='--'); state.textContent='PROGRAMANDO EL PRÓXIMO DROP'; return; } const tick=async()=>{ const difference=new Date(drop.release_at).getTime()-Date.now(); if(difference<=0){ clearInterval(dropTimer); state.textContent='DROP DISPONIBLE AHORA'; if(client){ await client.rpc('release_due_drops'); await load(); } return; } const units={Days:86400000,Hours:3600000,Minutes:60000,Seconds:1000}; let left=difference; Object.entries(units).forEach(([key,unit])=>{const amount=Math.floor(left/unit); document.getElementById(`count${key}`).textContent=String(amount).padStart(2,'0');left-=amount*unit;}); state.textContent=`DROP ACTIVO ${new Date(drop.release_at).toLocaleString('es-CR',{dateStyle:'medium',timeStyle:'short'})}`; }; tick(); dropTimer=setInterval(tick,1000); }
-  async function load(){ if(!client){ newDropGrid.innerHTML=productGrid.innerHTML='<p class="empty-state">CONFIGURÁ SUPABASE PARA CARGAR EL CATÁLOGO.</p>'; return; } await client.rpc('release_due_drops'); const [{data:productData,error:productError},{data:dropData}]=await Promise.all([client.from('products').select('*').order('created_at',{ascending:false}),client.from('drops').select('*').eq('is_active',true).order('release_at',{ascending:true}).limit(1)]); if(productError){ console.error(productError); newDropGrid.innerHTML=productGrid.innerHTML='<p class="empty-state">NO SE PUDO CARGAR EL CATÁLOGO.</p>'; return; } products=productData||[]; updateCountdown(dropData?.[0]); render(); }
-  renderFilters(); load();
+  const whatsapp = config?.whatsappNumber || "50689652370";
+  const client =
+    config?.url && config?.anonKey && window.supabase
+      ? window.supabase.createClient(config.url, config.anonKey)
+      : null;
+  const newDropGrid = document.getElementById("newDropGrid");
+  const productGrid = document.getElementById("productGrid");
+  const filterContainer = document.getElementById("categoryFilters");
+  const dialog = document.getElementById("productDialog");
+  let products = [],
+    activeCategory = "all",
+    dropTimer;
+  const categories = [
+    "camisas",
+    "pantalones",
+    "abrigos",
+    "buzos",
+    "accesorios",
+    "otros",
+  ];
+  function currency(value) {
+    return new Intl.NumberFormat("es-CR", {
+      style: "currency",
+      currency: "CRC",
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+  }
+  function escapeHtml(value = "") {
+    const el = document.createElement("div");
+    el.textContent = value;
+    return el.innerHTML;
+  }
+  function whatsappLink(product) {
+    const message = product
+      ? `Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?`
+      : "Hola, quiero consultar por las piezas disponibles de F-ck Face.";
+    return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
+  }
+  document
+    .querySelectorAll('[data-whatsapp="general"]')
+    .forEach((link) => (link.href = whatsappLink()));
+  function card(product) {
+    const image = product.image_urls?.[0] || "img/logo1.jpg";
+    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy"><span class="product-label">${escapeHtml(product.category || "PIEZA")}</span></div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${currency(product.price)}</strong></div></article>`;
+  }
+  function render() {
+    const released = products.filter((p) => p.status === "published");
+    const visible =
+      activeCategory === "all"
+        ? released
+        : released.filter((p) => p.category === activeCategory);
+    newDropGrid.innerHTML =
+      products
+        .filter((p) => p.status === "new_drop")
+        .map(card)
+        .join("") ||
+      '<p class="empty-state">LAS NUEVAS PIEZAS CAERÁN PRONTO.</p>';
+    productGrid.innerHTML =
+      visible.map(card).join("") ||
+      '<p class="empty-state">NO HAY PIEZAS EN ESTA SECCIÓN TODAVÍA.</p>';
+  }
+  function renderFilters() {
+    categories.forEach((category) => {
+      const button = document.createElement("button");
+      button.className = "filter";
+      button.dataset.category = category;
+      button.textContent = category.toUpperCase();
+      filterContainer.append(button);
+    });
+    filterContainer.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-category]");
+      if (!button) return;
+      activeCategory = button.dataset.category;
+      filterContainer
+        .querySelectorAll(".filter")
+        .forEach((item) => item.classList.toggle("active", item === button));
+      render();
+    });
+  }
+  function openProduct(product) {
+    document.getElementById("dialogImage").src =
+      product.image_urls?.[0] || "img/logo1.jpg";
+    document.getElementById("dialogImage").alt = product.name;
+    document.getElementById("dialogCategory").textContent =
+      product.category || "PIEZA";
+    document.getElementById("dialogName").textContent = product.name;
+    document.getElementById("dialogPrice").textContent = currency(
+      product.price,
+    );
+    document.getElementById("dialogDescription").textContent =
+      product.description || "Consultá por esta pieza para más detalles.";
+    document.getElementById("dialogSize").textContent = product.size || "—";
+    document.getElementById("dialogCondition").textContent =
+      product.condition || "—";
+    document.getElementById("dialogWhatsapp").href = whatsappLink(product);
+    dialog.showModal();
+  }
+  document.addEventListener("click", (event) => {
+    const cardEl = event.target.closest(".product-card");
+    if (cardEl) openProduct(products.find((p) => p.id === cardEl.dataset.id));
+  });
+  document
+    .querySelector(".dialog-close")
+    .addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  function updateCountdown(drop) {
+    clearInterval(dropTimer);
+    const state = document.getElementById("countdownState");
+    document.getElementById("dropDescription").textContent =
+      drop?.description || "Las próximas piezas están por caer. Volvé pronto.";
+    if (!drop?.release_at) {
+      ["Days", "Hours", "Minutes", "Seconds"].forEach(
+        (k) => (document.getElementById(`count${k}`).textContent = "--"),
+      );
+      state.textContent = "PROGRAMANDO EL PRÓXIMO DROP";
+      return;
+    }
+    const tick = async () => {
+      const difference = new Date(drop.release_at).getTime() - Date.now();
+      if (difference <= 0) {
+        clearInterval(dropTimer);
+        state.textContent = "DROP DISPONIBLE AHORA";
+        if (client) {
+          await client.rpc("release_due_drops");
+          await load();
+        }
+        return;
+      }
+      const units = {
+        Days: 86400000,
+        Hours: 3600000,
+        Minutes: 60000,
+        Seconds: 1000,
+      };
+      let left = difference;
+      Object.entries(units).forEach(([key, unit]) => {
+        const amount = Math.floor(left / unit);
+        document.getElementById(`count${key}`).textContent = String(
+          amount,
+        ).padStart(2, "0");
+        left -= amount * unit;
+      });
+      state.textContent = `DROP ACTIVO ${new Date(drop.release_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })}`;
+    };
+    tick();
+    dropTimer = setInterval(tick, 1000);
+  }
+  async function load() {
+    if (!client) {
+      newDropGrid.innerHTML = productGrid.innerHTML =
+        '<p class="empty-state">CONFIGURÁ SUPABASE PARA CARGAR EL CATÁLOGO.</p>';
+      return;
+    }
+    await client.rpc("release_due_drops");
+    const [{ data: productData, error: productError }, { data: dropData }] =
+      await Promise.all([
+        client
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        client
+          .from("drops")
+          .select("*")
+          .eq("is_active", true)
+          .order("release_at", { ascending: true })
+          .limit(1),
+      ]);
+    if (productError) {
+      console.error(productError);
+      newDropGrid.innerHTML = productGrid.innerHTML =
+        '<p class="empty-state">NO SE PUDO CARGAR EL CATÁLOGO.</p>';
+      return;
+    }
+    products = productData || [];
+    updateCountdown(dropData?.[0]);
+    render();
+  }
+  renderFilters();
+  load();
 })();
