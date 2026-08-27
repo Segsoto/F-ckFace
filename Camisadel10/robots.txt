@@ -1,0 +1,30 @@
+# Robots.txt para La Camisa del 10
+# Optimizado para SEO
+
+User-agent: *
+Allow: /
+Allow: /img/
+Allow: /*.html$
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.json$
+
+Disallow: /admin/
+Disallow: /private/
+Disallow: /tmp/
+
+# Crawl delay
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://www.lacamisadel10.com/sitemap.xml
+
+# Google specific
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing specific
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1

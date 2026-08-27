@@ -1,0 +1,213 @@
+<!-- 
+  CÓDIGO ADICIONAL PARA MEJORAR SEO
+  Agregar estos snippets en el <head> de todas las páginas
+  (Después del Schema.org pero antes de cerrar </head>)
+-->
+
+<!-- ====================================== -->
+<!-- VERIFICACIÓN DE DOMINIOS (OPCIONALES) -->
+<!-- ====================================== -->
+
+<!-- Verificación para Google (reemplazar con tu código) -->
+<!-- <meta name="google-site-verification" content="tu-codigo-de-google"> -->
+
+<!-- Verificación para Bing (opcional) -->
+<!-- <meta name="msvalidate.01" content="tu-codigo-de-bing"> -->
+
+<!-- ====================================== -->
+<!-- PRELOAD Y PREFETCH (OPTIMIZACIÓN) -->
+<!-- ====================================== -->
+
+<!-- Preconnect a CDN para mejorar velocidad -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+<!-- Prefetch de páginas internas principales -->
+<link rel="prefetch" href="ligas.html">
+<link rel="prefetch" href="selecciones.html">
+<link rel="prefetch" href="retro.html">
+
+<!-- ====================================== -->
+<!-- HREFLANG TAGS (PARA MÚLTIPLES IDIOMAS) -->
+<!-- ====================================== -->
+<!-- Si en el futuro tienes versión en otro idioma, descomenta y adapta: -->
+<!-- <link rel="alternate" hreflang="es" href="https://www.lacamisadel10.com/"> -->
+<!-- <link rel="alternate" hreflang="en" href="https://www.lacamisadel10.com/en/"> -->
+<!-- <link rel="alternate" hreflang="x-default" href="https://www.lacamisadel10.com/"> -->
+
+<!-- ====================================== -->
+<!-- MANIFEST.JSON (PARA PWA) -->
+<!-- ====================================== -->
+<!-- <link rel="manifest" href="manifest.json"> -->
+<!-- Si implementas PWA, el archivo manifest.json debe contener:
+{
+  "name": "La Camisa del 10",
+  "short_name": "La Camisa del 10",
+  "description": "Tienda online de camisetas de fútbol baratas",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1a1a1a",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/img/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
+-->
+
+<!-- ====================================== -->
+<!-- APPLE SPECIFIC TAGS -->
+<!-- ====================================== -->
+<!-- Apple favicon -->
+<!-- <link rel="apple-touch-icon" href="/img/apple-touch-icon.png"> -->
+
+<!-- Apple status bar style -->
+<!-- <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> -->
+<!-- <meta name="apple-mobile-web-app-capable" content="yes"> -->
+
+<!-- ====================================== -->
+<!-- LINKED DATA ADICIONAL (SCHEMA.ORG) -->
+<!-- ====================================== -->
+
+<!-- PRODUCT SCHEMA (Para cada producto en la tienda) -->
+<!-- Útil si tienes un carrito de compras:
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "Camiseta Oficial Manchester United",
+  "image": "https://www.lacamisadel10.com/img/manchester-united.jpg",
+  "description": "Camiseta oficial del Manchester United de la Liga Premier",
+  "brand": {
+    "@type": "Brand",
+    "name": "Manchester United"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "https://www.lacamisadel10.com/ligas.html",
+    "priceCurrency": "USD",
+    "price": "49.99",
+    "inStock": "InStock",
+    "availability": "https://schema.org/InStock"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "ratingCount": "150"
+  }
+}
+</script>
+-->
+
+<!-- FAQPage SCHEMA (Para página de preguntas frecuentes, si la tienes) -->
+<!-- <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "¿Cuáles son las tallas disponibles?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Disponemos de tallas S, M, L, XL y XXL en todas nuestras camisetas."
+      }
+    }
+  ]
+}
+</script>
+-->
+
+<!-- ====================================== -->
+<!-- BREADCRUMB SCHEMA (PARA MIGAS DE PAN) -->
+<!-- ====================================== -->
+<!-- Útil si implementas navegación con migas:
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Inicio",
+      "item": "https://www.lacamisadel10.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Ligas",
+      "item": "https://www.lacamisadel10.com/ligas.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Manchester United",
+      "item": "https://www.lacamisadel10.com/ligas.html#manchester"
+    }
+  ]
+}
+</script>
+-->
+
+<!-- ====================================== -->
+<!-- ALTERNATE LINKS (PARA VERSIONES MÓVIL/DESKTOP) -->
+<!-- ====================================== -->
+<!-- Si tienes URL separadas para móvil/desktop, descomentar:
+<link rel="alternate" media="only screen and (max-width: 640px)" href="https://m.lacamisadel10.com/">
+<link rel="canonical" href="https://www.lacamisadel10.com/">
+-->
+
+<!-- ====================================== -->
+<!-- AMP VERSION (OPCIONAL - VERSIÓN RÁPIDA) -->
+<!-- ====================================== -->
+<!-- Si implementas AMP (Accelerated Mobile Pages):
+<link rel="amphtml" href="https://www.lacamisadel10.com/amp/index.html">
+-->
+
+<!-- ====================================== -->
+<!-- FACEBOOK META TAGS ADICIONALES -->
+<!-- ====================================== -->
+<!-- App ID si tienes app en Facebook -->
+<!-- <meta property="fb:app_id" content="1234567890"> -->
+
+<!-- ====================================== -->
+<!-- WHATSAPP SHARING -->
+<!-- ====================================== -->
+<!-- Meta tag para WhatsApp -->
+<!-- <meta property="og:image:width" content="1200"> -->
+<!-- <meta property="og:image:height" content="630"> -->
+
+<!-- ====================================== -->
+<!-- SECURITY HEADERS (SI USA .HTACCESS) -->
+<!-- ====================================== -->
+<!-- Ya configurado en .htaccess, pero si no lo tiene, agregar:
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com; connect-src *;">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+-->
+
+<!-- ====================================== -->
+<!-- TESTING TOOLS -->
+<!-- ====================================== -->
+<!-- Google PageSpeed Insights: https://pagespeed.web.dev/ -->
+<!-- Rich Results Test: https://search.google.com/test/rich-results -->
+<!-- Mobile-Friendly Test: https://search.google.com/test/mobile-friendly -->
+<!-- Schema.org Validator: https://validator.schema.org/ -->
+
+<!-- ====================================== -->
+<!-- NOTAS IMPORTANTES -->
+<!-- ====================================== -->
+<!-- 
+1. Reemplazar URLs apropiadamente
+2. Verificar que todos los meta tags sean únicos por página
+3. Mantener consistencia en formato de URL (https, www)
+4. Actualizar sitemap.xml cuando se agreguen nuevas páginas
+5. Monitorear en Google Search Console regularmente
+6. No agregar meta tags conflictivos
+7. Preferir len- y pre-cargar recursos críticos
+-->

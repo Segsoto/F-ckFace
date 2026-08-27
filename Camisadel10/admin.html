@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-NDR73ZB7');</script>
+    <!-- End Google Tag Manager -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrador - Camisa del 10</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f4f4f1;
+            --surface: #efefeb;
+            --surface-2: #e8e8e3;
+            --ink: #171717;
+            --muted: #666662;
+            --line: #c9c9c1;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: linear-gradient(180deg, #f7f7f5 0%, #f0f0ec 55%, #e9e9e4 100%);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 22px; }
+
+        header {
+            background: rgba(243, 243, 239, 0.94);
+            border-bottom: 1px solid var(--line);
+            padding: 1.2rem 0;
+            backdrop-filter: blur(6px);
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.15rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        header .badge {
+            background: var(--surface);
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid var(--line);
+            border-radius: 0;
+        }
+
+        main { padding: 2.5rem 0; }
+
+        /* Login Form */
+        #loginForm {
+            max-width: 400px;
+            margin: 4rem auto;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 2.5rem 2rem;
+        }
+
+        #loginForm h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--line);
+            background: #f8f8f5;
+            font-family: inherit;
+            color: var(--ink);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--ink);
+            background: #fff;
+        }
+
+        button {
+            padding: 0.8rem 1.2rem;
+            background: var(--ink);
+            color: #f5f5f1;
+            border: 1px solid var(--ink);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        button:hover {
+            background: #000;
+            border-color: #000;
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--ink);
+        }
+
+        button.secondary:hover {
+            background: var(--surface);
+        }
+
+        /* Admin Panel */
+        #adminPanel { display: none; }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .panel-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.4rem;
+        }
+
+        .panel-header #logoutBtn {
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .message {
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1f2eb;
+            border-color: var(--success);
+            color: #065f46;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            border-color: var(--error);
+            color: #7f1d1d;
+        }
+
+        .message.info {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e3a8a;
+        }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .panel-grid > div {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 2rem;
+        }
+
+        #jerseyForm h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group.file {
+            border: 2px dashed var(--line);
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .form-group.file input {
+            display: none;
+        }
+
+        .form-group.file p {
+            color: var(--muted);
+            margin: 0.5rem 0;
+        }
+
+        #jerseyForm button {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        /* Jerseys List */
+        .jerseys-list-container h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 1.5rem;
+        }
+
+        #jerseysList {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .jersey-admin-card {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f9f9f6;
+            border: 1px solid var(--line);
+            margin-bottom: 0.8rem;
+        }
+
+        .jersey-preview {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+            border: 1px solid var(--line);
+            overflow: hidden;
+        }
+
+        .jersey-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .jersey-details {
+            flex: 1;
+        }
+
+        .jersey-details h3 {
+            font-size: 1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .jersey-details p {
+            font-size: 0.85rem;
+            margin: 0.2rem 0;
+            color: var(--muted);
+        }
+
+        .jersey-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .delete-btn {
+            background: var(--error);
+            padding: 0.5rem 0.8rem;
+            font-size: 0.75rem;
+            border-color: var(--error);
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+
+        .edit-btn {
+            background: #3b82f6;
+            color: white;
+            padding: 0.5rem 0.8rem;
+            font-size: 0.75rem;
+            border-color: #3b82f6;
+            margin-right: 0.5rem;
+        }
+
+        .edit-btn:hover {
+            background: #2563eb;
+        }
+
+        /* Modal Edición */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 1rem;
+        }
+
+        .modal-header h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: 1px solid var(--line);
+            width: 35px;
+            height: 35px;
+            padding: 0;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--line);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .btn-cancel:hover {
+            background: var(--surface-2);
+        }
+
+        /* Galería de previsualizaciones */
+        .image-preview-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.8rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border: 1px solid var(--line);
+            overflow: hidden;
+            background: #f9f9f6;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .remove-img {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-item .remove-img:hover {
+            background: rgba(220, 38, 38, 1);
+        }
+
+        .upload-counter {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-top: 0.5rem;
+        }
+
+        footer {
+            background: var(--surface-2);
+            border-top: 1px solid var(--line);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #jerseysList {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NDR73ZB7"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <header>
+        <div class="container">
+            <h1>📦 Panel Administrador</h1>
+            <span class="badge">Camisa del 10</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Mensaje de estado -->
+            <div id="messageBox" style="display: none;"></div>
+
+            <!-- FORMULARIO DE LOGIN -->
+            <form id="loginForm">
+                <h2>Acceso Restringido</h2>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" placeholder="Ingresa la contraseña" required>
+                </div>
+                <button type="submit" style="width: 100%;">Acceder</button>
+            </form>
+
+            <!-- PANEL ADMINISTRADOR -->
+            <div id="adminPanel">
+                <div class="panel-header">
+                    <h2>Gestión de Camisetas</h2>
+                    <button id="logoutBtn" class="secondary">Cerrar Sesión</button>
+                </div>
+
+                <div class="panel-grid">
+                    <!-- FORMULARIO AGREGAR CAMISETA -->
+                    <div>
+                        <form id="jerseyForm">
+                            <h3>Agregar Camiseta</h3>
+
+                            <div class="form-group">
+                                <label for="team">Nombre/Equipo *</label>
+                                <input type="text" id="team" name="team" placeholder="Ej: Real Madrid" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="category">Categoría *</label>
+                                <select id="category" name="category" required>
+                                    <option value="">Selecciona categoría</option>
+                                    <option value="ligas">Ligas Europeas</option>
+                                    <option value="selecciones">Selecciones Nacionales</option>
+                                    <option value="retro">Retro</option>
+                                    <option value="uniformes">Uniformes Niños</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="leagueGroup" style="display: none;">
+                                <label for="league">Liga *</label>
+                                <select id="league" name="league">
+                                    <option value="">Selecciona liga</option>
+                                    <option value="laliga">La Liga</option>
+                                    <option value="premier">Premier League</option>
+                                    <option value="seriea">Serie A</option>
+                                    <option value="ligue1">Ligue 1</option>
+                                    <option value="bundesliga">Bundesliga</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="price">Precio (₡) *</label>
+                                <input type="number" id="price" name="price" placeholder="18900" min="0" step="100" required>
+                            </div>
+
+                            <div class="form-group file" id="imageGroup">
+                                <input type="file" id="image" name="image" accept="image/*" multiple required>
+                                <p style="margin: 0;">
+                                    <i class="fas fa-cloud-upload-alt" style="font-size: 1.8rem;"></i>
+                                </p>
+                                <p><strong>Haz clic para subir imagenes</strong></p>
+                                <p style="font-size: 0.85rem;">PNG, JPG, WebP (Max 4 imagenes, 5MB c/u)</p>
+                            </div>
+                            <div id="imagePreviewGallery" class="image-preview-gallery"></div>
+                            <div id="uploadCounter" class="upload-counter"></div>
+
+                            <button type="submit" style="width: 100%;">✓ Agregar Camiseta</button>
+                        </form>
+                    </div>
+
+                    <!-- LISTA DE CAMISETAS -->
+                    <div class="jerseys-list-container">
+                        <h3>Camisetas Registradas</h3>
+                        <div id="jerseysList">
+                            <p style="text-align: center; color: var(--muted); padding: 2rem;">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL DE EDICIÓN -->
+            <div id="editModal" class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Editar Camiseta</h3>
+                        <button type="button" class="modal-close" id="modalCloseBtn">✕</button>
+                    </div>
+
+                    <form id="editForm">
+                        <div class="form-group">
+                            <label for="editTeam">Nombre/Equipo *</label>
+                            <input type="text" id="editTeam" name="team" placeholder="Ej: Real Madrid" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editCategory">Categoría *</label>
+                            <select id="editCategory" name="category" required>
+                                <option value="">Selecciona categoría</option>
+                                <option value="ligas">Ligas Europeas</option>
+                                <option value="selecciones">Selecciones Nacionales</option>
+                                <option value="retro">Retro</option>
+                                <option value="uniformes">Uniformes Niños</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="editLeagueGroup" style="display: none;">
+                            <label for="editLeague">Liga *</label>
+                            <select id="editLeague" name="league">
+                                <option value="">Selecciona liga</option>
+                                <option value="laliga">La Liga</option>
+                                <option value="premier">Premier League</option>
+                                <option value="seriea">Serie A</option>
+                                <option value="ligue1">Ligue 1</option>
+                                <option value="bundesliga">Bundesliga</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editPrice">Precio (₡) *</label>
+                            <input type="number" id="editPrice" name="price" placeholder="18900" min="0" step="100" required>
+                        </div>
+
+                        <div class="form-group file" id="editImageGroup">
+                            <input type="file" id="editImage" name="image" accept="image/*" multiple>
+                            <p style="margin: 0;">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 1.8rem;"></i>
+                            </p>
+                            <p><strong>Haz clic para cambiar imagenes (opcional)</strong></p>
+                            <p style="font-size: 0.85rem;">PNG, JPG, WebP (Max 4 imagenes, 5MB c/u)</p>
+                        </div>
+
+                        <div id="currentImagePreview" style="margin-bottom: 1rem;">
+                            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">Imagenes actuales:</p>
+                            <div id="editImagePreviewGallery" class="image-preview-gallery"></div>
+                        </div>
+
+                        <div id="editUploadCounter" class="upload-counter"></div>
+
+                        <div class="modal-actions">
+                            <button type="submit" style="flex: 2;">✓ Actualizar Camiseta</button>
+                            <button type="button" class="btn-cancel" id="editCancelBtn" style="flex: 1;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Camisa del 10 - Panel Administrador | Área Restringida</p>
+    </footer>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Configuración -->
+    <script src="config.js"></script>
+
+    <!-- Admin JS -->
+    <script src="admin.js"></script>
+
+    <script>
+        // Formulario principal - Agregar camiseta
+        const mainImageGroup = document.querySelector('.form-group.file');
+        const mainImageInput = document.getElementById('image');
+        const mainCategorySelect = document.getElementById('category');
+        const mainLeagueGroup = document.getElementById('leagueGroup');
+        const mainLeagueSelect = document.getElementById('league');
+
+        if (mainImageGroup && mainImageInput) {
+            mainImageGroup.addEventListener('click', () => {
+                mainImageInput.click();
+            });
+
+            mainImageInput.addEventListener('change', (e) => {
+                const fileName = e.target.files[0]?.name || 'Seleccionar archivo';
+                const fileLabel = mainImageGroup.querySelector('p:nth-of-type(2) strong');
+                if (fileLabel) {
+                    fileLabel.textContent = fileName;
+                }
+            });
+        }
+
+        if (mainCategorySelect) {
+            function toggleMainLeagueField() {
+                const isLigas = mainCategorySelect.value === 'ligas';
+                mainLeagueGroup.style.display = isLigas ? 'block' : 'none';
+                mainLeagueSelect.required = isLigas;
+                if (!isLigas) {
+                    mainLeagueSelect.value = '';
+                }
+            }
+
+            mainCategorySelect.addEventListener('change', toggleMainLeagueField);
+            toggleMainLeagueField();
+        }
+    </script>
+</body>
+</html>

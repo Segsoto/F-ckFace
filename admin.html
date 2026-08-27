@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101010" /><title>Admin — F-ck Face</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <header><a href="index.html">F-CK FACE</a><span>ADMIN / INVENTORY SYSTEM</span></header>
+    <main>
+      <section id="loginView" class="login-box"><p class="eyebrow">ACCESO DE EQUIPO</p><h1>ADMIN<br><em>AREA</em></h1><p class="message" id="loginMessage" role="alert"></p><form id="loginForm"><label>EMAIL<input id="email" type="email" autocomplete="email" required></label><label>CONTRASEÑA<input id="password" type="password" autocomplete="current-password" required></label><button>INGRESAR ↗</button></form><p class="hint">Los accesos se administran desde Supabase Auth.</p></section>
+      <section id="adminView" hidden>
+        <div class="admin-head"><div><p class="eyebrow">PANEL DE CONTROL</p><h1>THE<br><em>DROP ROOM</em></h1></div><button class="outline" id="logoutButton">CERRAR SESIÓN</button></div>
+        <p class="message" id="message" role="status"></p>
+        <div class="admin-grid">
+          <section class="panel drop-panel"><p class="eyebrow">CALENDARIO</p><h2>PRÓXIMO DROP</h2><p class="subtle">Cuando llegue esta fecha, todas las piezas de New Drop se publicarán en su categoría automáticamente.</p><form id="dropForm"><label>FECHA Y HORA DEL DROP<input id="releaseAt" type="datetime-local" required></label><label>NOTA DEL DROP<textarea id="dropText" rows="3" placeholder="Ej. Piezas seleccionadas, una sola unidad."></textarea></label><button>PROGRAMAR DROP</button></form><div id="activeDrop" class="active-drop">SIN DROP PROGRAMADO</div></section>
+          <section class="panel product-panel"><p class="eyebrow">NUEVA PIEZA</p><h2>ADD TO NEW DROP</h2><form id="productForm"><div class="two-cols"><label>NOMBRE<input name="name" required placeholder="Ej. Chaqueta Nike ACG"></label><label>PRECIO (₡)<input name="price" type="number" min="0" step="500" required></label></div><div class="two-cols"><label>CATEGORÍA<select name="category" required><option value="camisas">Camisas</option><option value="pantalones">Pantalones</option><option value="abrigos">Abrigos</option><option value="buzos">Buzos</option><option value="accesorios">Accesorios</option><option value="otros">Otros</option></select></label><label>TALLA<input name="size" placeholder="M / 32 / Única"></label></div><label>ESTADO<input name="condition" placeholder="Ej. Muy buen estado"></label><label>DESCRIPCIÓN<textarea name="description" rows="3" placeholder="Detalles, medidas o condición de la pieza."></textarea></label><label class="file-input">FOTOS (HASTA 4)<input id="images" type="file" accept="image/*" multiple required><span id="fileCount">Seleccionar archivos</span></label><button>AGREGAR A NEW DROP</button></form></section>
+        </div>
+        <section class="inventory"><div class="inventory-title"><div><p class="eyebrow">INVENTARIO</p><h2>PIEZAS ACTIVAS</h2></div><span id="inventoryCount"></span></div><div id="inventoryList" class="inventory-list"><p>CARGANDO...</p></div></section>
+      </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="admin.js"></script>
+  </body>
+</html>
