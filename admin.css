@@ -206,7 +206,7 @@ button:hover {
 .inventory-row {
   background: var(--paper);
   display: grid;
-  grid-template-columns: 70px 1fr auto;
+  grid-template-columns: 70px 1fr 135px auto;
   gap: 15px;
   align-items: center;
   padding: 10px;
@@ -242,6 +242,10 @@ button:hover {
   font-size: 9px;
   padding: 8px;
 }
+.availability {
+  font-size: 9px;
+  padding: 8px;
+}
 @media (max-width: 700px) {
   main {
     padding: 40px 15px;
@@ -259,7 +263,8 @@ button:hover {
     width: 55px;
     height: 55px;
   }
-  .inventory-row .delete {
+  .inventory-row .delete,
+  .inventory-row .availability {
     grid-column: 2;
   }
   .two-cols {

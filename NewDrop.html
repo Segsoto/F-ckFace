@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#e52325" />
+    <title>New Drop — F-ck Face</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="new-drop-page">
+    <div class="site-banner"><span>ACCESO ANTICIPADO / COMUNIDAD F-CK FACE</span><span>PIEZAS ÚNICAS · STREETWEAR</span><span>ACCESO ANTICIPADO / COMUNIDAD F-CK FACE</span></div>
+    <header class="site-header">
+      <a class="wordmark" href="index.html" aria-label="F-ck Face, inicio">F🏔️CK FACE <span class="mark">™</span></a>
+      <nav aria-label="Navegación principal"><a href="index.html">SHOP</a><a href="index.html#contacto">CONTACTO</a></nav>
+      <a class="header-cta" href="index.html">VOLVER A LA TIENDA</a>
+    </header>
+    <main>
+      <section class="exclusive-hero">
+        <p class="overline">COMUNIDAD / ACCESO ANTICIPADO</p>
+        <h1>NEW<br /><em>DROP</em></h1>
+        <p id="newDropDescription">Las próximas piezas están por caer.</p>
+        <div class="countdown countdown-dark" id="countdown" aria-live="polite"><div><strong id="countDays">--</strong><span>DÍAS</span></div><i>:</i><div><strong id="countHours">--</strong><span>HORAS</span></div><i>:</i><div><strong id="countMinutes">--</strong><span>MIN</span></div><i>:</i><div><strong id="countSeconds">--</strong><span>SEG</span></div></div>
+        <p class="countdown-state" id="countdownState">PROGRAMANDO EL PRÓXIMO DROP</p>
+      </section>
+      <section class="exclusive-content">
+        <form id="accessForm" class="access-form" hidden>
+          <label>CONTRASEÑA DE LA COMUNIDAD<input id="accessPassword" type="password" autocomplete="current-password" required /></label>
+          <button class="button button-red">VER PIEZAS ↗</button>
+          <p class="access-message" id="accessMessage" role="alert"></p>
+        </form>
+        <div id="accessGranted" class="access-granted" hidden>ACCESO EXCLUSIVO ACTIVO</div>
+        <div class="product-grid" id="exclusiveProductGrid"></div>
+        <section id="closedDrop" class="closed-drop" hidden>
+          <p class="overline">GRACIAS POR TU INTERÉS</p>
+          <h2>EL DROP YA ESTÁ<br /><em>DISPONIBLE.</em></h2>
+          <p>Mirá nuestra página para ver las prendas que aún están disponibles.</p>
+          <a class="button button-red" href="index.html#catalogo">VER PRENDAS DISPONIBLES ↗</a>
+          <p class="next-drop-countdown" id="nextDropMessage">PRÓXIMO DROP: PROGRAMANDO</p>
+        </section>
+      </section>
+    </main>
+    <dialog class="product-dialog" id="productDialog"><button class="dialog-close" aria-label="Cerrar">×</button><div class="dialog-layout"><div class="dialog-image"><img id="dialogImage" alt="" /></div><div class="dialog-info"><p class="overline" id="dialogCategory"></p><h2 id="dialogName"></h2><p class="dialog-price" id="dialogPrice"></p><p id="dialogDescription"></p><dl><div><dt>TALLA</dt><dd id="dialogSize"></dd></div><div><dt>ESTADO</dt><dd id="dialogCondition"></dd></div><div><dt>LARGO</dt><dd id="dialogLength"></dd></div><div><dt>ANCHO DE PECHO</dt><dd id="dialogChestWidth"></dd></div><div><dt>MEDIDAS TOMADAS EN PLANO; PUEDEN VARIAR LEVEMENTE.</dt></div></dl><p id="availabilityNotice" class="availability-notice" hidden></p><a id="dialogWhatsapp" class="button button-red" target="_blank" rel="noopener">CONSULTAR POR WHATSAPP ↗</a></div></div></dialog>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="newdrop.js"></script>
+  </body>
+</html>

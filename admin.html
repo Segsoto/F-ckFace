@@ -53,15 +53,27 @@
             <p class="eyebrow">CALENDARIO</p>
             <h2>PRÓXIMO DROP</h2>
             <p class="subtle">
-              Cuando llegue esta fecha, todas las piezas de New Drop se
-              publicarán en su categoría automáticamente.
+              Primero se abre para la comunidad con contraseña; luego las
+              piezas disponibles pasan a la tienda pública automáticamente.
             </p>
             <form id="dropForm">
               <label
-                >FECHA Y HORA DEL DROP<input
-                  id="releaseAt"
+                >APERTURA EXCLUSIVA<input
+                  id="exclusiveAt"
                   type="datetime-local"
                   required /></label
+              ><label
+                >APERTURA PÚBLICA<input
+                  id="publicAt"
+                  type="datetime-local"
+                  required /></label
+              ><label
+                >CONTRASEÑA DEL DROP<input
+                  id="dropPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="Obligatoria al crear; vacía para conservarla"
+                /></label
               ><label
                 >NOTA DEL DROP<textarea
                   id="dropText"
@@ -105,6 +117,24 @@
                   >TALLA<input name="size" placeholder="M / 32 / Única"
                 /></label>
               </div>
+              <div class="two-cols">
+                <label
+                  >LARGO (CM)<input
+                    name="length_cm"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="Ej. 72"
+                /></label>
+                <label
+                  >ANCHO DE PECHO (CM)<input
+                    name="chest_width_cm"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="Ej. 58"
+                /></label>
+              </div>
               <label
                 >ESTADO<input
                   name="condition"
@@ -113,7 +143,7 @@
                 >DESCRIPCIÓN<textarea
                   name="description"
                   rows="3"
-                  placeholder="Detalles, medidas o condición de la pieza."
+                  placeholder="Detalles adicionales de la pieza."
                 ></textarea></label
               ><label class="file-input"
                 >FOTOS (HASTA 4)<input

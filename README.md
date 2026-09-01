@@ -4,11 +4,11 @@ Sitio estático para el negocio **F-ck Face**. Funciona como catálogo: no hay c
 
 La tienda está pensada para vender mediante *drops*:
 
-1. El equipo crea las nuevas piezas en el panel de administración.
-2. Cada pieza nueva queda con estado `new_drop` y se muestra en la sección **New Drop** de la tienda.
-3. Un administrador programa la fecha y hora del lanzamiento.
-4. Al cumplirse la hora, las piezas `new_drop` pasan a estado `published`.
-5. Las piezas publicadas aparecen en **Shop All**, filtradas por su categoría.
+1. El equipo crea un único drop activo con apertura exclusiva, contraseña y apertura pública.
+2. Carga sus piezas, que quedan vinculadas a ese drop y en estado `new_drop`.
+3. En el período exclusivo, la comunidad abre `NewDrop.html` con la contraseña.
+4. Al cumplirse la apertura pública, las piezas pasan automáticamente a `published` y aparecen en `index.html`.
+5. Las piezas apartadas o en proceso continúan visibles con su aviso; las vendidas se eliminan desde el panel.
 
 ## Tecnologías
 
@@ -22,8 +22,10 @@ La tienda está pensada para vender mediante *drops*:
 | Archivo | Responsabilidad |
 | --- | --- |
 | `index.html` | Tienda pública y modal de detalles de producto. |
+| `NewDrop.html` | Acceso exclusivo con contador y contraseña para la comunidad. |
 | `styles.css` | Diseño streetwear de la tienda. |
-| `app.js` | Lectura de catálogo, filtros, modal, WhatsApp y contador del drop. |
+| `app.js` | Lectura del catálogo público, modal, WhatsApp y contador de apertura pública. |
+| `newdrop.js` | Validación segura del acceso exclusivo, contador y catálogo del drop. |
 | `admin.html` | Panel de administración. |
 | `admin.css` | Estilos del panel. |
 | `admin.js` | Inicio de sesión, carga de imágenes, alta/eliminación de piezas y programación de drops. |
@@ -82,25 +84,25 @@ Abrir `admin.html` en el sitio publicado.
 
 ### Programar un drop
 
-1. En **Próximo Drop**, elegir fecha y hora futuras.
-2. Escribir una nota opcional para mostrar en la tienda.
+1. En **Próximo Drop**, elegir la apertura exclusiva y la apertura pública.
+2. Crear la contraseña y escribir una nota opcional.
 3. Presionar **Programar Drop**.
 
-Solo hay un drop activo. Programar uno nuevo desactiva el anterior.
+Solo hay un drop activo. Una vez que se abre al público, se puede crear el siguiente.
 
 ### Añadir una prenda
 
-1. Completar nombre, precio, categoría y los detalles que apliquen.
+1. Completar nombre, precio, categoría, talla, largo y ancho de pecho cuando apliquen.
 2. Seleccionar de una a cuatro fotos, de máximo 5 MB por archivo.
 3. Presionar **Agregar a New Drop**.
 
-La pieza se sube a Supabase Storage y se registra con estado `new_drop`. No aparece aún en el catálogo general; se ve en la sección roja **New Drop**.
+La pieza se sube a Supabase Storage y se registra con estado `new_drop`. No aparece aún en el catálogo general; solo se revela mediante `NewDrop.html` durante la ventana exclusiva.
 
 ### El lanzamiento automático
 
-La función PostgreSQL `release_due_drops()` revisa si la fecha del drop activo ya pasó. Si pasó:
+La función PostgreSQL `release_due_drops()` revisa si la fecha pública del drop activo ya pasó. Si pasó:
 
-- Cambia todas las prendas `new_drop` a `published`.
+- Cambia solo las prendas vinculadas a ese drop de `new_drop` a `published`.
 - Desactiva ese drop.
 - El frontend vuelve a leer los datos y el catálogo muestra las prendas dentro de su categoría.
 
@@ -124,6 +126,9 @@ Si el negocio necesita que el movimiento ocurra aun cuando nadie abra el sitio, 
 | `condition` | Estado opcional. |
 | `description` | Detalles opcionales. |
 | `image_urls` | Arreglo de URLs públicas de Supabase Storage. |
+| `drop_id` | Drop al que pertenece la prenda. |
+| `length_cm`, `chest_width_cm` | Largo y ancho de pecho, en centímetros. |
+| `availability` | `available`, `reserved` o `payment_pending`. |
 | `status` | `new_drop` o `published`. |
 | `created_at`, `updated_at` | Fechas de control. |
 
@@ -131,7 +136,9 @@ Si el negocio necesita que el movimiento ocurra aun cuando nadie abra el sitio, 
 
 | Campo | Uso |
 | --- | --- |
-| `release_at` | Fecha/hora UTC del lanzamiento. El frontend la convierte a hora local de Costa Rica. |
+| `exclusive_at` | Fecha/hora UTC de apertura para la comunidad. |
+| `public_at` | Fecha/hora UTC de apertura para toda la tienda. |
+| `access_password_hash` | Hash de contraseña; nunca la contraseña en texto plano. |
 | `description` | Texto de apoyo para la sección New Drop. |
 | `is_active` | Indica cuál es el próximo drop. |
 
@@ -182,4 +189,5 @@ Antes de publicar cambios, comprobar que:
 | La tienda muestra “No se pudo cargar el catálogo” | SQL no ejecutado, políticas incorrectas o conexión equivocada. | Ejecutar `supabase-schema.sql` y comprobar el proyecto configurado. |
 | Un usuario inicia sesión pero no entra al panel | No figura en `admin_profiles`. | Autorizarlo con el SQL de la sección “Crear administradores”. |
 | Error subiendo fotos | Bucket o políticas de Storage faltantes. | Ejecutar el bloque Storage de `supabase-schema.sql`. |
+| `function gen_salt(unknown) does not exist` o `404` en `/rpc/save_active_drop` | La versión anterior del RPC no encuentra `pgcrypto` o PostgREST conserva su caché. | Ejecutar nuevamente, completo, `supabase-schema.sql` en el SQL Editor del proyecto configurado. El script actualiza la función y recarga el caché. |
 | Las piezas no pasan a Shop All | La fecha aún no llegó o nadie cargó la web tras el lanzamiento. | Abrir la tienda/panel o configurar Supabase Cron para ejecución cada minuto. |

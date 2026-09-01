@@ -9,6 +9,7 @@
     message = document.getElementById("message"),
     loginMessage = document.getElementById("loginMessage"),
     inventory = document.getElementById("inventoryList");
+  let activeDrop = null;
   function notice(text, type = "success", target = message) {
     if (!target) return;
     target.textContent = text;
@@ -21,6 +22,11 @@
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9._-]/g, "-")
       .toLowerCase();
+  }
+  function localDateTimeValue(value) {
+    const date = new Date(value);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString().slice(0, 16);
   }
   async function isAdmin() {
     const {
@@ -147,6 +153,8 @@
       button.textContent = "SUBIENDO...";
       try {
         const data = new FormData(event.currentTarget);
+        if (!activeDrop?.id)
+          throw new Error("Primero configurá el drop antes de cargar prendas.");
         const image_urls = await uploadImages(
           document.getElementById("images").files,
         );
@@ -157,8 +165,12 @@
           size: data.get("size") || null,
           condition: data.get("condition") || null,
           description: data.get("description") || null,
+          length_cm: data.get("length_cm") || null,
+          chest_width_cm: data.get("chest_width_cm") || null,
           image_urls,
           status: "new_drop",
+          availability: "available",
+          drop_id: activeDrop.id,
         });
         if (error) throw error;
         event.currentTarget.reset();
@@ -178,29 +190,28 @@
     .getElementById("dropForm")
     .addEventListener("submit", async (event) => {
       event.preventDefault();
-      const releaseAt = document.getElementById("releaseAt").value;
-      if (new Date(releaseAt) <= new Date()) {
-        notice("Elegí una fecha futura.", "error");
+      const exclusiveAt = document.getElementById("exclusiveAt").value;
+      const publicAt = document.getElementById("publicAt").value;
+      if (!exclusiveAt || !publicAt || new Date(exclusiveAt) <= new Date()) {
+        notice("Elegí una apertura exclusiva futura.", "error");
         return;
       }
-      const { error: offError } = await client
-        .from("drops")
-        .update({ is_active: false })
-        .eq("is_active", true);
-      if (offError) {
-        notice(offError.message, "error");
+      if (new Date(publicAt) <= new Date(exclusiveAt)) {
+        notice("La apertura pública debe ser posterior a la exclusiva.", "error");
         return;
       }
-      const { error } = await client.from("drops").insert({
-        release_at: new Date(releaseAt).toISOString(),
-        description: document.getElementById("dropText").value || null,
-        is_active: true,
+      const { error } = await client.rpc("save_active_drop", {
+        p_exclusive_at: new Date(exclusiveAt).toISOString(),
+        p_public_at: new Date(publicAt).toISOString(),
+        p_password: document.getElementById("dropPassword").value,
+        p_description: document.getElementById("dropText").value || null,
       });
       if (error) {
         notice(error.message, "error");
         return;
       }
       notice("Drop programado correctamente.");
+      document.getElementById("dropPassword").value = "";
       await loadData();
     });
   async function loadData() {
@@ -222,13 +233,13 @@
       return;
     }
     const drop = drops?.[0];
+    activeDrop = drop || null;
     document.getElementById("activeDrop").textContent = drop
-      ? `ACTIVO: ${new Date(drop.release_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })}`
+      ? `EXCLUSIVO: ${new Date(drop.exclusive_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })} · PÚBLICO: ${new Date(drop.public_at || drop.release_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })}`
       : "SIN DROP PROGRAMADO";
     if (drop) {
-      document.getElementById("releaseAt").value = new Date(drop.release_at)
-        .toISOString()
-        .slice(0, 16);
+      document.getElementById("exclusiveAt").value = localDateTimeValue(drop.exclusive_at);
+      document.getElementById("publicAt").value = localDateTimeValue(drop.public_at || drop.release_at);
       document.getElementById("dropText").value = drop.description || "";
     }
     document.getElementById("inventoryCount").textContent =
@@ -237,7 +248,7 @@
       products
         .map(
           (product) =>
-            `<article class="inventory-row"><img src="${product.image_urls?.[0] || "img/logo1.jpg"}" alt=""><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}</p><span class="status ${product.status}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><button class="delete" data-delete="${product.id}">ELIMINAR</button></article>`,
+            `<article class="inventory-row"><img src="${product.image_urls?.[0] || "img/logo1.jpg"}" alt=""><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}</p><span class="status ${product.status}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${product.id}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="delete" data-delete="${product.id}">VENDIDA / ELIMINAR</button></article>`,
         )
         .join("") || "<p>NO HAY PIEZAS TODAVÍA.</p>";
   }
@@ -259,6 +270,18 @@
       return;
     }
     notice("Pieza eliminada.");
+    await loadData();
+  });
+  inventory.addEventListener("change", async (event) => {
+    const select = event.target.closest("[data-availability]");
+    if (!select) return;
+    select.disabled = true;
+    const { error } = await client
+      .from("products")
+      .update({ availability: select.value, updated_at: new Date().toISOString() })
+      .eq("id", select.dataset.availability);
+    if (error) notice(error.message, "error");
+    else notice("Estado de la prenda actualizado.");
     await loadData();
   });
   setup();

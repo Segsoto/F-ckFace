@@ -1,8 +1,8 @@
 :root {
   --red: #e52325;
-  --black: #0c0c0c;
-  --cream: #f0ede5;
-  --line: #252525;
+  --black: #181818;
+  --cream: #fff;
+  --line: #dedede;
   --mono: "DM Mono", monospace;
   --condensed: "Barlow Condensed", sans-serif;
 }
@@ -50,15 +50,16 @@ a {
 .wordmark {
   font: 900 32px/1 var(--condensed);
   letter-spacing: -1.6px;
+  color: var(--red);
 }
 .wordmark span {
-  background: var(--black);
-  color: var(--cream);
-  padding: 1px 5px;
+  background: none;
+  color: var(--red);
+  padding: 0;
 }
 .wordmark .mark {
   background: none;
-  color: var(--black);
+  color: var(--red);
   font: 10px var(--mono);
   padding: 0;
   vertical-align: top;
@@ -81,8 +82,8 @@ a {
   padding: 9px 11px;
 }
 .hero {
-  background: var(--black);
-  color: var(--cream);
+  background: #fff;
+  color: var(--black);
   height: min(695px, calc(100vh - 103px));
   min-height: 560px;
   position: relative;
@@ -133,8 +134,8 @@ h2 em {
   box-shadow: 4px 4px 0 currentColor;
 }
 .button-light {
-  background: var(--cream);
-  color: var(--black);
+  background: #fff;
+  color: var(--red);
 }
 .button-red {
   background: var(--red);
@@ -150,13 +151,13 @@ h2 em {
   aspect-ratio: 1;
   background: var(--red);
   padding: 2px;
-  filter: grayscale(1) contrast(1.2);
+  filter: none;
 }
 .hero-art img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  mix-blend-mode: screen;
+  mix-blend-mode: normal;
 }
 .hero-stamp {
   position: absolute;
@@ -285,6 +286,17 @@ h2 em {
   font-size: 9px;
   letter-spacing: 0.08em;
 }
+.product-availability {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  padding: 4px 6px;
+  background: var(--red);
+  color: #fff;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.product-availability.payment_pending { background: #7d2627; }
 .product-info {
   padding: 14px 14px 17px;
   display: flex;
@@ -328,28 +340,10 @@ h2 em {
 .catalog-header h2 {
   font-size: clamp(60px, 8vw, 118px);
 }
-.filters {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.filter {
-  font: 10px var(--mono);
-  padding: 8px 10px;
-  background: transparent;
-  border: 1px solid var(--line);
-  cursor: pointer;
-}
-.filter.active,
-.filter:hover {
-  background: var(--black);
-  color: var(--cream);
-}
 .contact-section {
   padding: 120px 4vw 130px;
-  background: #161616;
-  color: var(--cream);
+  background: var(--red);
+  color: #fff;
   position: relative;
 }
 .contact-section h2 {
@@ -449,6 +443,22 @@ footer a {
 .hidden {
   display: none;
 }
+.hero-countdown { color: var(--red); font-size: 10px; letter-spacing: .12em; }
+.availability-notice { background: #ffe0e0; border: 1px solid var(--red); color: var(--black); padding: 11px; font-size: 10px; line-height: 1.5; }
+.exclusive-hero { padding: 96px 8vw 65px; background: var(--red); color: #fff; }
+.exclusive-hero h1, .closed-drop h2 { font: 900 clamp(90px, 15vw, 190px)/.72 var(--condensed); letter-spacing: -.05em; margin: 0; }
+.exclusive-hero h1 em, .closed-drop h2 em { color: var(--black); font-style: normal; }
+.exclusive-hero > p:not(.overline):not(.countdown-state) { max-width: 440px; line-height: 1.7; }
+.countdown-dark strong, .countdown-dark i { color: var(--black); }
+.exclusive-content { padding: 65px 4vw 100px; }
+.access-form { max-width: 500px; display: grid; gap: 13px; margin: 0 0 48px; }
+.access-form input { padding: 13px; border: 1px solid var(--black); font: 14px var(--mono); }
+.access-form .button { width: max-content; cursor: pointer; }
+.access-message { color: var(--red); font-size: 10px; margin: 0; }
+.access-granted { border-bottom: 2px solid var(--red); color: var(--red); padding-bottom: 12px; margin-bottom: 25px; font-size: 10px; letter-spacing: .13em; }
+.closed-drop { max-width: 850px; padding: 40px 0; }
+.closed-drop > p:not(.overline):not(.next-drop-countdown) { max-width: 400px; line-height: 1.7; margin: 28px 0; }
+.next-drop-countdown { color: var(--red); font-size: 10px; letter-spacing: .12em; margin-top: 45px; }
 @keyframes move {
   to {
     transform: translateX(-50%);
@@ -516,10 +526,6 @@ footer a {
   }
   .catalog-header h2 {
     font-size: 78px;
-  }
-  .filters {
-    justify-content: flex-start;
-    margin-top: 25px;
   }
   .contact-section {
     padding: 85px 5vw;
