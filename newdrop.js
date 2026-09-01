@@ -12,6 +12,9 @@
   const escapeHtml = (value = "") => { const el = document.createElement("div"); el.textContent = value; return el.innerHTML; };
   const statusLabel = (value) => ({ reserved: "APARTADA", payment_pending: "EN PROCESO" })[value] || "DISPONIBLE";
   const passwordKey = (drop) => `ff-exclusive-drop-${drop.id}`;
+  document.querySelectorAll('[data-whatsapp="general"]').forEach((link) => {
+    link.href = `https://wa.me/${whatsapp}?text=${encodeURIComponent("Hola, quiero consultar sobre el drop exclusivo de F-ck Face.")}`;
+  });
   const whatsappLink = (product) => `https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?`)}`;
   function card(product) {
     const unavailable = product.availability !== "available" ? `<span class="product-availability ${escapeHtml(product.availability)}">${statusLabel(product.availability)}</span>` : "";

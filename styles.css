@@ -369,6 +369,33 @@ footer {
 footer a {
   text-decoration: underline;
 }
+.floating-whatsapp {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(37, 211, 102, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+  z-index: 100;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+.floating-whatsapp img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.floating-whatsapp:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+}
 .product-dialog {
   border: 0;
   padding: 0;
