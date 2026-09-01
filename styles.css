@@ -26,7 +26,7 @@ a {
 .site-banner {
   height: 29px;
   background: var(--red);
-  color: #fff;
+  color: #e0e0e0;
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -42,7 +42,7 @@ a {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  background: var(--cream);
+  background: var(--white);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -52,18 +52,28 @@ a {
   letter-spacing: -1.6px;
   color: var(--red);
 }
+
+.wordmark2 {
+  font: 900 32px/1 var(--condensed);
+  letter-spacing: -1.6px;
+  color: var(--white);
+}
+
 .wordmark span {
   background: none;
   color: var(--red);
   padding: 0;
 }
-.wordmark .mark {
-  background: none;
-  color: var(--red);
-  font: 10px var(--mono);
-  padding: 0;
-  vertical-align: top;
-  margin-left: 2px;
+.wordmark .brand-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  color: var(--black);
+  font: 900 32px/1 var(--condensed);
+  letter-spacing: -0.05em;
+  vertical-align: middle;
+  transform: translateY(-1px);
+  text-transform: uppercase;
 }
 .site-header nav {
   display: flex;
