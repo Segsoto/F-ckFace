@@ -12,13 +12,47 @@
   const escapeHtml = (value = "") => { const el = document.createElement("div"); el.textContent = value; return el.innerHTML; };
   const statusLabel = (value) => ({ reserved: "APARTADA", payment_pending: "EN PROCESO" })[value] || "DISPONIBLE";
   const passwordKey = (drop) => `ff-exclusive-drop-${drop.id}`;
+  function normalizeImages(product) {
+    const items = [];
+    const add = (value) => {
+      if (!value || typeof value !== "string") return;
+      const clean = value.trim();
+      if (!clean) return;
+      if (clean.startsWith("[") && clean.endsWith("]")) {
+        try {
+          const parsed = JSON.parse(clean);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(add);
+            return;
+          }
+        } catch {
+          // ignore and continue
+        }
+      }
+      const parts = clean.includes("|") ? clean.split("|") : [clean];
+      parts.forEach((part) => {
+        const normalized = part.trim();
+        if (normalized && !items.includes(normalized)) items.push(normalized);
+      });
+    };
+
+    if (Array.isArray(product?.image_urls)) {
+      product.image_urls.forEach(add);
+    } else {
+      add(product?.image_urls);
+    }
+    add(product?.image_url);
+
+    return items.length ? items : ["img/logo1.jpg"];
+  }
   document.querySelectorAll('[data-whatsapp="general"]').forEach((link) => {
     link.href = `https://wa.me/${whatsapp}?text=${encodeURIComponent("Hola, quiero consultar sobre el drop exclusivo de F-ck Face.")}`;
   });
   const whatsappLink = (product) => `https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?`)}`;
   function card(product) {
+    const firstImage = normalizeImages(product)[0];
     const unavailable = product.availability !== "available" ? `<span class="product-availability ${escapeHtml(product.availability)}">${statusLabel(product.availability)}</span>` : "";
-    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(product.image_urls?.[0] || "img/logo1.jpg")}" alt="${escapeHtml(product.name)}"><span class="product-label">${escapeHtml(product.category)}</span>${unavailable}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${currency(product.price)}</strong></div></article>`;
+    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}"><span class="product-label">${escapeHtml(product.category)}</span>${unavailable}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${currency(product.price)}</strong></div></article>`;
   }
   async function unlock(password) {
     const { data, error } = await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: password });
@@ -60,8 +94,30 @@
   }
   form.addEventListener("submit", async (event) => { event.preventDefault(); document.getElementById("accessMessage").textContent = ""; await unlock(document.getElementById("accessPassword").value); });
   function openProduct(product) {
-    [ ["dialogImage", product.image_urls?.[0] || "img/logo1.jpg"], ["dialogCategory", product.category || "PIEZA"], ["dialogName", product.name], ["dialogPrice", currency(product.price)], ["dialogDescription", product.description || "Consultá por esta pieza para más detalles."], ["dialogSize", product.size || "—"], ["dialogCondition", product.condition || "—"], ["dialogLength", product.length_cm ? `${product.length_cm} cm` : "—"], ["dialogChestWidth", product.chest_width_cm ? `${product.chest_width_cm} cm` : "—"] ].forEach(([id, value]) => { document.getElementById(id).textContent = value; });
-    document.getElementById("dialogImage").src = product.image_urls?.[0] || "img/logo1.jpg";
+    const gallery = document.getElementById("dialogGallery");
+    const images = normalizeImages(product);
+    const mainImage = document.getElementById("dialogImage");
+
+    [ ["dialogCategory", product.category || "PIEZA"], ["dialogName", product.name], ["dialogPrice", currency(product.price)], ["dialogDescription", product.description || "Consultá por esta pieza para más detalles."], ["dialogSize", product.size || "—"], ["dialogCondition", product.condition || "—"], ["dialogLength", product.length_cm ? `${product.length_cm} cm` : "—"], ["dialogChestWidth", product.chest_width_cm ? `${product.chest_width_cm} cm` : "—"] ].forEach(([id, value]) => { document.getElementById(id).textContent = value; });
+
+    mainImage.src = images[0];
+    mainImage.alt = product.name;
+    gallery.innerHTML = "";
+
+    images.forEach((src, index) => {
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = `dialog-gallery-item ${index === 0 ? "active" : ""}`;
+      thumb.setAttribute("aria-label", `Ver imagen ${index + 1}`);
+      thumb.innerHTML = `<img src="${src}" alt="${escapeHtml(product.name)} ${index + 1}" loading="lazy" />`;
+      thumb.addEventListener("click", () => {
+        mainImage.src = src;
+        gallery.querySelectorAll(".dialog-gallery-item").forEach((item) => item.classList.toggle("active", item === thumb));
+      });
+      gallery.appendChild(thumb);
+    });
+
+    gallery.style.display = images.length > 1 ? "flex" : "none";
     const unavailable = product.availability !== "available", notice = document.getElementById("availabilityNotice"); notice.hidden = !unavailable; notice.textContent = unavailable ? `ESTA PRENDA ESTÁ ${statusLabel(product.availability)}. ESPERÁ A QUE SE LIBERE PARA PODER INTENTAR COMPRARLA.` : "";
     whatsappButton.href = whatsappLink(product); whatsappButton.dataset.availability = product.availability || "available"; dialog.showModal();
   }
