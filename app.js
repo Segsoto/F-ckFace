@@ -18,8 +18,29 @@
   }
   function render() { productGrid.innerHTML = products.map(card).join("") || '<p class="empty-state">NO HAY PIEZAS DISPONIBLES TODAVÍA.</p>'; }
   function openProduct(product) {
-    document.getElementById("dialogImage").src = product.image_urls?.[0] || "img/logo1.jpg";
-    document.getElementById("dialogImage").alt = product.name;
+    const gallery = document.getElementById("dialogGallery");
+    const images = Array.isArray(product.image_urls) && product.image_urls.length
+      ? product.image_urls.filter(Boolean)
+      : [product.image_urls?.[0] || "img/logo1.jpg"];
+    const mainImage = document.getElementById("dialogImage");
+
+    mainImage.src = images[0];
+    mainImage.alt = product.name;
+    gallery.innerHTML = "";
+
+    images.forEach((src, index) => {
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = `dialog-gallery-item ${index === 0 ? "active" : ""}`;
+      thumb.setAttribute("aria-label", `Ver imagen ${index + 1}`);
+      thumb.innerHTML = `<img src="${src}" alt="${escapeHtml(product.name)} ${index + 1}" loading="lazy" />`;
+      thumb.addEventListener("click", () => {
+        mainImage.src = src;
+        gallery.querySelectorAll(".dialog-gallery-item").forEach((item) => item.classList.toggle("active", item === thumb));
+      });
+      gallery.appendChild(thumb);
+    });
+
     document.getElementById("dialogCategory").textContent = product.category || "PIEZA";
     document.getElementById("dialogName").textContent = product.name;
     document.getElementById("dialogPrice").textContent = currency(product.price);

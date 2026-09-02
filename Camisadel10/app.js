@@ -245,6 +245,13 @@
                     <button class="jersey-carousel-btn prev-jersey"><i class="fas fa-chevron-left"></i></button>
                     <button class="jersey-carousel-btn next-jersey"><i class="fas fa-chevron-right"></i></button>
                     <div class="jersey-carousel-indicators"></div>
+                    <div class="jersey-preview-strip">
+                        ${images.map((src, idx) => `
+                            <button class="jersey-preview-thumb ${idx === 0 ? 'active' : ''}" type="button" data-index="${idx}" aria-label="Ver imagen ${idx + 1}">
+                                <img src="${src}" alt="${jersey.team} ${idx + 1}" loading="lazy">
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
             `
             : `<img src="${mainImage}" alt="${jersey.team}" loading="lazy">`;

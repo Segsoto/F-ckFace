@@ -1,5 +1,5 @@
 :root {
-  --red: #e52325;
+  --red: #9e1013;
   --black: #181818;
   --cream: #fff;
   --line: #dedede;
@@ -92,7 +92,7 @@ a {
   padding: 9px 11px;
 }
 .hero {
-  background: #fff;
+  background: #dddddd;
   color: var(--black);
   height: min(695px, calc(100vh - 103px));
   min-height: 560px;
@@ -434,6 +434,11 @@ footer a {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
 }
+.dialog-image-wrap {
+  display: flex;
+  flex-direction: column;
+  background: #d3d0c8;
+}
 .dialog-image {
   height: min(680px, 90vh);
   background: #d3d0c8;
@@ -442,6 +447,37 @@ footer a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+}
+.dialog-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  background: #f4f1ea;
+  border-top: 1px solid var(--line);
+}
+.dialog-gallery-item {
+  width: 62px;
+  height: 62px;
+  border: 2px solid transparent;
+  padding: 0;
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.dialog-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dialog-gallery-item.active {
+  border-color: var(--red);
+}
+.dialog-gallery-item:hover {
+  transform: translateY(-1px);
 }
 .dialog-info {
   padding: 60px 45px;

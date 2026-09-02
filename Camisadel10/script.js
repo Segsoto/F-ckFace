@@ -599,6 +599,9 @@ function initJerseyCarousels() {
     const jerseyCards = document.querySelectorAll('.jersey-card');
     
     jerseyCards.forEach(card => {
+        if (card.dataset.carouselInitialized === 'true') return;
+        card.dataset.carouselInitialized = 'true';
+
         const carouselContainer = card.querySelector('.jersey-carousel-images');
         if (!carouselContainer) return;
         
@@ -610,6 +613,7 @@ function initJerseyCarousels() {
         const prevBtn = card.querySelector('.jersey-carousel-btn.prev-jersey');
         const nextBtn = card.querySelector('.jersey-carousel-btn.next-jersey');
         const indicatorsContainer = card.querySelector('.jersey-carousel-indicators');
+        const previewThumbs = card.querySelectorAll('.jersey-preview-thumb');
         
         // Crear indicadores
         images.forEach((_, index) => {
@@ -622,18 +626,29 @@ function initJerseyCarousels() {
             });
             indicatorsContainer.appendChild(indicator);
         });
+
+        previewThumbs.forEach((thumb, index) => {
+            thumb.addEventListener('click', () => {
+                goToJerseySlide(card, index);
+                resetAutoSlide();
+            });
+        });
         
         // Función para mostrar slide específico
         function goToJerseySlide(cardElem, index) {
             const container = cardElem.querySelector('.jersey-carousel-images');
             const indicators = cardElem.querySelectorAll('.jersey-indicator');
-            const imgs = container.querySelectorAll('img');
+            const thumbs = cardElem.querySelectorAll('.jersey-preview-thumb');
             
             currentIndex = index;
             container.style.transform = `translateX(-${currentIndex * 100}%)`;
             
             indicators.forEach((ind, i) => {
                 ind.classList.toggle('active', i === currentIndex);
+            });
+
+            thumbs.forEach((thumb, i) => {
+                thumb.classList.toggle('active', i === currentIndex);
             });
         }
         
