@@ -106,12 +106,13 @@
               <div class="two-cols">
                 <label
                   >CATEGORÍA<select name="category" required>
-                    <option value="camisas">Camisas</option>
+                    <option value="jacket_damas">Jacket damas</option>
+                    <option value="jacket_caballeros">Jacket caballeros</option>
                     <option value="pantalones">Pantalones</option>
-                    <option value="abrigos">Abrigos</option>
-                    <option value="buzos">Buzos</option>
-                    <option value="accesorios">Accesorios</option>
-                    <option value="otros">Otros</option>
+                    <option value="chalecos">Chalecos</option>
+                    <option value="tallas_plus">Tallas Plus</option>
+                    <option value="ropa_ninos">Ropa niños</option>
+                    <option value="mochilas">Mochilas</option>
                   </select></label
                 ><label
                   >TALLA<input name="size" placeholder="M / 32 / Única"
@@ -146,7 +147,7 @@
                   placeholder="Detalles adicionales de la pieza."
                 ></textarea></label
               ><label class="file-input"
-                >FOTOS (HASTA 4)<input
+                >FOTOS (HASTA 7)<input
                   id="images"
                   type="file"
                   accept="image/*"
@@ -171,6 +172,19 @@
         </section>
       </section>
     </main>
+    <dialog class="edit-dialog" id="editProductDialog">
+      <button class="dialog-close" id="closeEditProduct" type="button" aria-label="Cerrar">×</button>
+      <form id="editProductForm">
+        <p class="eyebrow">EDITAR PIEZA</p><h2 id="editProductTitle">PRODUCTO</h2>
+        <input id="editProductId" type="hidden" />
+        <div class="two-cols"><label>NOMBRE<input id="editName" required /></label><label>PRECIO ACTUAL (₡)<input id="editPrice" type="number" min="0" step="500" required /></label></div>
+        <p class="price-help" id="priceHelp">Al bajar el precio, se conservará automáticamente el precio anterior para mostrar la rebaja.</p>
+        <div class="two-cols"><label>CATEGORÍA<select id="editCategory" required><option value="jacket_damas">Jacket damas</option><option value="jacket_caballeros">Jacket caballeros</option><option value="pantalones">Pantalones</option><option value="chalecos">Chalecos</option><option value="tallas_plus">Tallas Plus</option><option value="ropa_ninos">Ropa niños</option><option value="mochilas">Mochilas</option><option value="camisas">Camisas (anterior)</option><option value="abrigos">Abrigos (anterior)</option><option value="buzos">Buzos (anterior)</option><option value="accesorios">Accesorios (anterior)</option><option value="otros">Otros (anterior)</option></select></label><label>TALLA<input id="editSize" /></label></div>
+        <div class="two-cols"><label>LARGO (CM)<input id="editLength" type="number" min="0" step="0.5" /></label><label>ANCHO DE PECHO (CM)<input id="editChestWidth" type="number" min="0" step="0.5" /></label></div>
+        <label>ESTADO<input id="editCondition" /></label><label>DESCRIPCIÓN<textarea id="editDescription" rows="3"></textarea></label>
+        <div class="edit-actions"><button type="submit">GUARDAR CAMBIOS</button><button type="button" id="removeDiscount" class="secondary">QUITAR DESCUENTO</button></div>
+      </form>
+    </dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="admin.js"></script>

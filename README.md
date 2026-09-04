@@ -121,7 +121,8 @@ Si el negocio necesita que el movimiento ocurra aun cuando nadie abra el sitio, 
 | `id` | Identificador UUID. |
 | `name` | Nombre de la prenda. |
 | `price` | Precio en colones costarricenses. |
-| `category` | `camisas`, `pantalones`, `abrigos`, `buzos`, `accesorios` u `otros`. |
+| `original_price` | Precio anterior opcional. Si es mayor que `price`, se muestra la rebaja y su porcentaje. |
+| `category` | `jacket_damas`, `jacket_caballeros`, `pantalones`, `chalecos`, `tallas_plus`, `ropa_ninos` o `mochilas`. Las categorías antiguas se conservan en base de datos para el inventario existente. |
 | `size` | Talla opcional. |
 | `condition` | Estado opcional. |
 | `description` | Detalles opcionales. |
@@ -178,8 +179,8 @@ Antes de publicar cambios, comprobar que:
 - Mantener RLS activado. No crear políticas públicas de escritura para `products`, `drops` ni Storage.
 - No exponer claves secretas de Supabase en repositorios o frontend.
 - Las fotos eliminadas desde el inventario actualmente eliminan el registro de la prenda, pero no borran automáticamente sus archivos del bucket. Es una mejora pendiente para evitar fotos sin uso.
-- Actualmente el panel permite eliminar piezas, pero no editar sus datos una vez creadas. Si se requiere edición, agregar un modal/formulario que haga `update` sobre `products`; las políticas ya lo permiten para administradores.
-- Si se agregan categorías, cambiar las opciones del `<select>` en `admin.html`, el arreglo `categories` en `app.js` y la restricción `check` de `products.category` en la base de datos mediante una migración.
+- El botón **Editar** del inventario permite corregir los datos de cualquier pieza publicada o de New Drop. Al reducir el precio, guarda el importe anterior y calcula automáticamente la rebaja; **Quitar descuento** vuelve a mostrar un único precio.
+- Si se agregan categorías, cambiar las opciones del `<select>` en `admin.html`, las tarjetas y el objeto `categoryNames` en `app.js`/`index.html`, y la restricción `check` de `products.category` en la base de datos mediante una migración.
 
 ## Diagnóstico rápido
 

@@ -5,18 +5,34 @@
   const productGrid = document.getElementById("productGrid");
   const dialog = document.getElementById("productDialog");
   const whatsappButton = document.getElementById("dialogWhatsapp");
-  let products = [], publicTimer;
+  let products = [], publicTimer, selectedCategory = null;
+  const categoryNames = {
+    jacket_damas: "JACKET DAMAS", jacket_caballeros: "JACKET CABALLEROS",
+    pantalones: "PANTALONES", chalecos: "CHALECOS", tallas_plus: "TALLAS PLUS",
+    ropa_ninos: "ROPA NIÑOS", mochilas: "MOCHILAS"
+  };
   function currency(value) { return new Intl.NumberFormat("es-CR", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(value || 0); }
   function escapeHtml(value = "") { const el = document.createElement("div"); el.textContent = value; return el.innerHTML; }
   function statusLabel(availability) { return ({ reserved: "APARTADA", payment_pending: "EN PROCESO" })[availability] || "DISPONIBLE"; }
+  function priceMarkup(product) { const discounted = Number(product.original_price) > Number(product.price); const percent = discounted ? Math.round((1 - Number(product.price) / Number(product.original_price)) * 100) : 0; return `${discounted ? `<span class="discount-badge">-${percent}%</span>` : ""}<span class="price-stack">${discounted ? `<s class="price-original">${currency(product.original_price)}</s>` : ""}<span class="price-current">${currency(product.price)}</span></span>`; }
   function whatsappLink(product) { const message = product ? `Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?` : "Hola, quiero consultar por las piezas disponibles de F-ck Face."; return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`; }
   document.querySelectorAll('[data-whatsapp="general"]').forEach((link) => (link.href = whatsappLink()));
   function card(product) {
     const image = product.image_urls?.[0] || "img/logo1.jpg";
     const status = product.availability !== "available" ? `<span class="product-availability ${escapeHtml(product.availability)}">${statusLabel(product.availability)}</span>` : "";
-    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy"><span class="product-label">${escapeHtml(product.category || "PIEZA")}</span>${status}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${currency(product.price)}</strong></div></article>`;
+    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy"><span class="product-label">${escapeHtml(categoryNames[product.category] || product.category || "PIEZA")}</span>${status}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
   }
-  function render() { productGrid.innerHTML = products.map(card).join("") || '<p class="empty-state">NO HAY PIEZAS DISPONIBLES TODAVÍA.</p>'; }
+  function render() {
+    const visibleProducts = selectedCategory ? products.filter((product) => product.category === selectedCategory) : products;
+    productGrid.innerHTML = visibleProducts.map(card).join("") || `<p class="empty-state">${selectedCategory ? `NO HAY PIEZAS EN ${escapeHtml(categoryNames[selectedCategory])} TODAVÍA.` : "NO HAY PIEZAS DISPONIBLES TODAVÍA."}</p>`;
+    document.getElementById("catalogReset").hidden = !selectedCategory;
+    document.querySelectorAll(".category-card").forEach((item) => item.classList.toggle("active", item.dataset.category === selectedCategory));
+  }
+  function selectCategory(category) {
+    selectedCategory = category;
+    render();
+    document.getElementById("productGrid").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   function openProduct(product) {
     const gallery = document.getElementById("dialogGallery");
     const images = Array.isArray(product.image_urls) && product.image_urls.length
@@ -41,9 +57,9 @@
       gallery.appendChild(thumb);
     });
 
-    document.getElementById("dialogCategory").textContent = product.category || "PIEZA";
+    document.getElementById("dialogCategory").textContent = categoryNames[product.category] || product.category || "PIEZA";
     document.getElementById("dialogName").textContent = product.name;
-    document.getElementById("dialogPrice").textContent = currency(product.price);
+    document.getElementById("dialogPrice").innerHTML = priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "");
     document.getElementById("dialogDescription").textContent = product.description || "Consultá por esta pieza para más detalles.";
     document.getElementById("dialogSize").textContent = product.size || "—";
     document.getElementById("dialogCondition").textContent = product.condition || "—";
@@ -58,6 +74,8 @@
     dialog.showModal();
   }
   document.addEventListener("click", (event) => { const cardEl = event.target.closest(".product-card"); if (cardEl) openProduct(products.find((p) => p.id === cardEl.dataset.id)); });
+  document.getElementById("categorySlider").addEventListener("click", (event) => { const category = event.target.closest(".category-card")?.dataset.category; if (category) selectCategory(category); });
+  document.getElementById("catalogReset").addEventListener("click", () => { selectedCategory = null; render(); });
   whatsappButton.addEventListener("click", (event) => { if (whatsappButton.dataset.availability === "available") return; event.preventDefault(); alert("Esta prenda está apartada o en proceso de compra. Esperá a que se libere de nuevo para poder intentar comprarla."); });
   document.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
   dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });

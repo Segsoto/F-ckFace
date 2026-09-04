@@ -92,8 +92,8 @@ a {
   padding: 9px 11px;
 }
 .hero {
-  background: #dddddd;
-  color: var(--black);
+  background: #242424 url("img/logo1.jpg") center/cover;
+  color: #fff;
   height: min(695px, calc(100vh - 103px));
   min-height: 560px;
   position: relative;
@@ -101,6 +101,23 @@ a {
   display: flex;
   align-items: center;
   padding: 6vw;
+}
+.hero-video,
+.hero-video-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.hero-video {
+  z-index: 0;
+  object-fit: cover;
+  object-position: center;
+}
+.hero-video-overlay {
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(0, 0, 0, .72) 0%, rgba(0, 0, 0, .38) 52%, rgba(0, 0, 0, .2) 100%), rgba(0, 0, 0, .16);
+  pointer-events: none;
 }
 .hero-copy {
   z-index: 2;
@@ -181,6 +198,8 @@ h2 em {
   position: absolute;
   right: 3vw;
   top: 50%;
+  color: #fff;
+  z-index: 2;
   writing-mode: vertical-rl;
   font-size: 10px;
   letter-spacing: 0.14em;
@@ -328,6 +347,12 @@ h2 em {
   font-size: 11px;
   white-space: nowrap;
 }
+.price-stack { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.price-original { color: #666; font-size: 10px; text-decoration-thickness: 1px; }
+.price-current { color: var(--red); font-size: 13px; }
+.discount-badge { position: absolute; right: 9px; top: 9px; padding: 5px 6px; background: var(--red); color: #fff; font: 700 10px var(--mono); letter-spacing: .06em; }
+.dialog-price .price-stack { align-items: flex-start; }
+.dialog-price .price-current { font-size: 20px; }
 .empty-state {
   background: var(--cream);
   color: var(--black);
@@ -350,6 +375,31 @@ h2 em {
 .catalog-header h2 {
   font-size: clamp(60px, 8vw, 118px);
 }
+.catalog-reset {
+  appearance: none;
+  border: 1px solid var(--black);
+  background: transparent;
+  color: var(--black);
+  font: 500 10px var(--mono);
+  letter-spacing: .08em;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.category-section { margin: 0 0 48px; overflow: hidden; }
+.category-heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 16px; }
+.category-heading .overline { margin: 0; }
+.category-heading h3 { margin: 0; font: 900 clamp(38px, 4.5vw, 64px)/.82 var(--condensed); letter-spacing: -.04em; text-transform: uppercase; }
+.category-heading em { color: var(--red); font-style: normal; }
+.category-slider { display: flex; gap: 14px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-width: thin; padding-bottom: 12px; }
+.category-card { flex: 0 0 min(30vw, 330px); min-width: 235px; aspect-ratio: .79; padding: 0; border: 0; color: #fff; background: #222; text-align: left; position: relative; overflow: hidden; cursor: pointer; scroll-snap-align: start; }
+.category-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.03) 36%, rgba(0,0,0,.85) 100%); transition: background .25s ease; }
+.category-card img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .45s ease; }
+.category-card span, .category-card small { position: absolute; z-index: 1; left: 19px; text-transform: uppercase; }
+.category-card span { bottom: 39px; font: 900 clamp(38px, 4vw, 58px)/.79 var(--condensed); letter-spacing: -.035em; }
+.category-card small { bottom: 17px; font: 500 9px var(--mono); letter-spacing: .13em; }
+.category-card:hover img, .category-card:focus-visible img { transform: scale(1.06); }
+.category-card:hover::after, .category-card.active::after { background: linear-gradient(180deg, rgba(158,16,19,.08) 25%, rgba(0,0,0,.92) 100%); }
+.category-card.active { outline: 3px solid var(--red); outline-offset: -3px; }
 .contact-section {
   padding: 120px 4vw 130px;
   background: var(--red);
@@ -600,6 +650,9 @@ footer a {
   .catalog-header h2 {
     font-size: 78px;
   }
+  .category-heading { display: block; }
+  .category-heading h3 { margin-top: 12px; }
+  .category-card { flex-basis: 78vw; }
   .contact-section {
     padding: 85px 5vw;
   }
@@ -620,5 +673,10 @@ footer a {
   }
   .dialog-info h2 {
     font-size: 50px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-video {
+    display: none;
   }
 }

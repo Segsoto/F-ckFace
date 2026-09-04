@@ -10,7 +10,7 @@ create extension if not exists pgcrypto with schema extensions;
 create table if not exists public.admin_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   created_at timestamptz not null default now()
-);
+);  
 
 create table if not exists public.drops (
   id uuid primary key default gen_random_uuid(),
@@ -24,7 +24,8 @@ create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 1 and 160),
   price integer not null check (price >= 0),
-  category text not null check (category in ('camisas','pantalones','abrigos','buzos','accesorios','otros')),
+  original_price integer check (original_price is null or original_price > 0),
+  category text not null check (category in ('jacket_damas','jacket_caballeros','pantalones','chalecos','tallas_plus','ropa_ninos','mochilas','camisas','abrigos','buzos','accesorios','otros')),
   size text,
   condition text,
   description text,
@@ -46,6 +47,12 @@ alter table public.products add column if not exists drop_id uuid references pub
 alter table public.products add column if not exists length_cm numeric(6,2);
 alter table public.products add column if not exists chest_width_cm numeric(6,2);
 alter table public.products add column if not exists availability text not null default 'available';
+alter table public.products add column if not exists original_price integer;
+alter table public.products drop constraint if exists products_original_price_check;
+alter table public.products add constraint products_original_price_check check (original_price is null or (original_price > price and original_price > 0));
+-- Categorías vigentes. Se conservan las categorías anteriores para no invalidar inventario ya creado.
+alter table public.products drop constraint if exists products_category_check;
+alter table public.products add constraint products_category_check check (category in ('jacket_damas','jacket_caballeros','pantalones','chalecos','tallas_plus','ropa_ninos','mochilas','camisas','abrigos','buzos','accesorios','otros'));
 alter table public.products drop constraint if exists products_availability_check;
 alter table public.products add constraint products_availability_check check (availability in ('available','reserved','payment_pending'));
 

@@ -40,9 +40,25 @@
     </header>
     <main>
       <section class="hero" id="inicio">
+        <video
+          class="hero-video"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          
+          aria-hidden="true"
+        >
+          <source
+            src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+            type="video/mp4"
+          />
+        </video>
+        <div class="hero-video-overlay" aria-hidden="true"></div>
         <div class="hero-stamp">FF<br />CR<br />26</div>
         <div class="hero-copy">
-          <p class="overline">ARCHIVE / VINTAGE / STREET</p>
+          <p class="overline">Hiking / Snowboard / Outdoor</p>
           <h1>NO ES PARA<br /><em>TODO EL MUNDO.</em></h1>
           <p class="hero-subtitle">Piezas con historia para crear la tuya.</p>
           <p class="hero-countdown" id="publicDropCountdown">PRÓXIMO DROP: PROGRAMANDO</p>
@@ -53,7 +69,7 @@
         <div class="hero-art">
           <img src="img/logo1.jpg" alt="Hey Fuck Face" />
         </div>
-        <p class="hero-side">DROP 001 — SAN JOSÉ, CR</p>
+        <p class="hero-side"> SAN JOSÉ, CR</p>
       </section>
       <div class="ticker" aria-label="Información de la tienda">
         <div>
@@ -68,7 +84,44 @@
             <p class="overline">01 / ARCHIVO ACTIVO</p>
             <h2>SHOP <em>ALL</em></h2>
           </div>
+          <button class="catalog-reset" id="catalogReset" type="button" hidden>VER TODO ×</button>
         </header>
+        <section class="category-section" aria-labelledby="categoryTitle">
+          <div class="category-heading">
+            <p class="overline">EXPLORÁ POR TIPO DE PIEZA</p>
+            <h3 id="categoryTitle">SHOP BY <em>CATEGORY</em></h3>
+          </div>
+          <div class="category-slider" id="categorySlider" aria-label="Categorías de productos">
+            <button class="category-card" type="button" data-category="jacket_damas">
+              <img src="/img/jacketmujer.avif" alt="Jacket para damas" />
+              <span>JACKET<br />DAMAS</span><small>VER COLECCIÓN →</small>
+            </button>
+            <button class="category-card" type="button" data-category="jacket_caballeros">
+              <img src="/img/jackethombre.webp" alt="Jacket para caballeros" />
+              <span>JACKET<br />CABALLEROS</span><small>VER COLECCIÓN →</small>
+            </button>
+            <button class="category-card" type="button" data-category="pantalones">
+              <img src="/img/pantalones.avif" alt="Pantalones" />
+              <span>PANTALONES</span><small>VER COLECCIÓN →</small>
+            </button>
+            <button class="category-card" type="button" data-category="chalecos">
+              <img src="/img/chalecos.jpeg" alt="Chalecos" />
+              <span>CHALECOS</span><small>VER COLECCIÓN →</small>
+            </button>
+            <button class="category-card" type="button" data-category="tallas_plus">
+              <img src="/img/fotogorda.jpg" alt="Ropa en tallas plus" />
+              <span>TALLAS<br />PLUS</span><small>VER COLECCIÓN →</small>
+            </button>
+            <button class="category-card" type="button" data-category="ropa_ninos">
+              <img src="/img/niño.jpeg" alt="Ropa para niños" />
+              <span>ROPA<br />NIÑOS</span><small>VER COLECCIÓN →</small>
+            </button>
+            <button class="category-card" type="button" data-category="mochilas">
+              <img src="/img/bolsos.avif" alt="Mochilas" />
+              <span>MOCHILAS</span><small>VER COLECCIÓN →</small>
+            </button>
+          </div>
+        </section>
         <div class="product-grid" id="productGrid">
           <p class="empty-state">CARGANDO CATÁLOGO...</p>
         </div>
@@ -129,6 +182,14 @@
             </div>
             <div>
               <dt>MEDIDAS TOMADAS EN PLANO; PUEDEN VARIAR LEVEMENTE.</dt>
+              
+            </div>
+            <div>
+              Aceptamos pagos mediante sinpe
+              
+            </div>
+            <div>
+              Contamos con sistema de apartados con el 50%  hasta 17 dias para pagar el saldo 
             </div>
           </dl>
           <p id="availabilityNotice" class="availability-notice" hidden></p>

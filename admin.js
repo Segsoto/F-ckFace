@@ -9,7 +9,7 @@
     message = document.getElementById("message"),
     loginMessage = document.getElementById("loginMessage"),
     inventory = document.getElementById("inventoryList");
-  let activeDrop = null;
+  let activeDrop = null, products = [], removeDiscountRequested = false;
   function notice(text, type = "success", target = message) {
     if (!target) return;
     target.textContent = text;
@@ -127,9 +127,9 @@
     const {
       data: { user },
     } = await client.auth.getUser();
-    const selected = [...files].slice(0, 4);
+    const selected = [...files].slice(0, 7);
     if (!selected.length) throw new Error("Seleccioná al menos una foto.");
-    if (files.length > 4) throw new Error("Podés cargar un máximo de 4 fotos.");
+    if (files.length > 7) throw new Error("Podés cargar un máximo de 7 fotos.");
     const urls = [];
     for (const file of selected) {
       if (file.size > 5 * 1024 * 1024)
@@ -144,40 +144,51 @@
     }
     return urls;
   }
+  function numberOrNull(value) {
+    if (value === "" || value == null) return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
   document
     .getElementById("productForm")
     .addEventListener("submit", async (event) => {
       event.preventDefault();
-      const button = event.currentTarget.querySelector("button");
+      const form = event.currentTarget;
+      const button = form.querySelector("button");
       button.disabled = true;
       button.textContent = "SUBIENDO...";
       try {
-        const data = new FormData(event.currentTarget);
+        const data = new FormData(form);
         if (!activeDrop?.id)
           throw new Error("Primero configurá el drop antes de cargar prendas.");
         const image_urls = await uploadImages(
           document.getElementById("images").files,
         );
         const { error } = await client.from("products").insert({
-          name: data.get("name"),
-          price: Number(data.get("price")),
+          name: data.get("name").trim(),
+          price: numberOrNull(data.get("price")),
           category: data.get("category"),
           size: data.get("size") || null,
           condition: data.get("condition") || null,
           description: data.get("description") || null,
-          length_cm: data.get("length_cm") || null,
-          chest_width_cm: data.get("chest_width_cm") || null,
+          length_cm: numberOrNull(data.get("length_cm")),
+          chest_width_cm: numberOrNull(data.get("chest_width_cm")),
           image_urls,
           status: "new_drop",
           availability: "available",
           drop_id: activeDrop.id,
         });
         if (error) throw error;
-        event.currentTarget.reset();
+        form.reset();
         document.getElementById("fileCount").textContent =
           "Seleccionar archivos";
         notice("Pieza agregada a New Drop.");
-        await loadData();
+        try {
+          await loadData();
+        } catch (refreshError) {
+          console.error("La pieza se guardó, pero no se pudo actualizar la lista:", refreshError);
+          notice("La pieza se guardó. Actualizá la lista en unos segundos.", "error");
+        }
       } catch (error) {
         console.error(error);
         notice(error.message || "No se pudo agregar la pieza.", "error");
@@ -215,8 +226,12 @@
       await loadData();
     });
   async function loadData() {
-    await client.rpc("release_due_drops");
-    const [{ data: products, error }, { data: drops }] = await Promise.all([
+    const { error: releaseError } = await client.rpc("release_due_drops");
+    if (releaseError) console.warn("No se pudieron publicar drops vencidos:", releaseError);
+    const [
+      { data: loadedProducts, error: productsError },
+      { data: drops, error: dropsError },
+    ] = await Promise.all([
       client
         .from("products")
         .select("*")
@@ -228,12 +243,13 @@
         .order("release_at", { ascending: true })
         .limit(1),
     ]);
-    if (error) {
-      notice(error.message, "error");
-      return;
+    if (productsError) throw productsError;
+    if (dropsError) {
+      console.warn("No se pudo actualizar la información del drop:", dropsError);
     }
-    const drop = drops?.[0];
-    activeDrop = drop || null;
+    products = loadedProducts || [];
+    const drop = dropsError ? activeDrop : drops?.[0] || null;
+    activeDrop = drop;
     document.getElementById("activeDrop").textContent = drop
       ? `EXCLUSIVO: ${new Date(drop.exclusive_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })} · PÚBLICO: ${new Date(drop.public_at || drop.release_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })}`
       : "SIN DROP PROGRAMADO";
@@ -248,7 +264,7 @@
       products
         .map(
           (product) =>
-            `<article class="inventory-row"><img src="${product.image_urls?.[0] || "img/logo1.jpg"}" alt=""><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}</p><span class="status ${product.status}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${product.id}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="delete" data-delete="${product.id}">VENDIDA / ELIMINAR</button></article>`,
+            `<article class="inventory-row"><img src="${product.image_urls?.[0] || "img/logo1.jpg"}" alt=""><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${product.status}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${product.id}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${product.id}">EDITAR</button><button class="delete" data-delete="${product.id}">VENDIDA / ELIMINAR</button></article>`,
         )
         .join("") || "<p>NO HAY PIEZAS TODAVÍA.</p>";
   }
@@ -258,6 +274,8 @@
     return node.innerHTML;
   }
   inventory.addEventListener("click", async (event) => {
+    const editButton = event.target.closest("[data-edit]");
+    if (editButton) { openEditProduct(products.find((product) => product.id === editButton.dataset.edit)); return; }
     const button = event.target.closest("[data-delete]");
     if (!button) return;
     if (!confirm("¿Eliminar esta pieza del inventario?")) return;
@@ -271,6 +289,60 @@
     }
     notice("Pieza eliminada.");
     await loadData();
+  });
+  const editDialog = document.getElementById("editProductDialog");
+  function openEditProduct(product) {
+    if (!product) return;
+    removeDiscountRequested = false;
+    document.getElementById("editProductId").value = product.id;
+    document.getElementById("editProductTitle").textContent = product.name;
+    document.getElementById("editName").value = product.name || "";
+    document.getElementById("editPrice").value = product.price;
+    document.getElementById("editCategory").value = product.category;
+    document.getElementById("editSize").value = product.size || "";
+    document.getElementById("editLength").value = product.length_cm || "";
+    document.getElementById("editChestWidth").value = product.chest_width_cm || "";
+    document.getElementById("editCondition").value = product.condition || "";
+    document.getElementById("editDescription").value = product.description || "";
+    document.getElementById("priceHelp").textContent = product.original_price ? `Precio anterior actual: ₡${Number(product.original_price).toLocaleString("es-CR")}. Si el precio vuelve a ser igual o mayor, la rebaja se quitará.` : "Al bajar el precio, se conservará automáticamente el precio anterior para mostrar la rebaja.";
+    editDialog.showModal();
+  }
+  document.getElementById("closeEditProduct").addEventListener("click", () => editDialog.close());
+  editDialog.addEventListener("click", (event) => { if (event.target === editDialog) editDialog.close(); });
+  document.getElementById("removeDiscount").addEventListener("click", () => { removeDiscountRequested = true; document.getElementById("priceHelp").textContent = "La rebaja se eliminará al guardar."; });
+  document.getElementById("editProductForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const product = products.find((item) => item.id === document.getElementById("editProductId").value);
+    if (!product) return;
+    const button = event.currentTarget.querySelector('[type="submit"]');
+    const price = numberOrNull(document.getElementById("editPrice").value);
+    if (price === null) {
+      notice("Ingresá un precio válido.", "error");
+      return;
+    }
+    let originalPrice = numberOrNull(product.original_price);
+    if (removeDiscountRequested) originalPrice = null;
+    else if (price < product.price) originalPrice = Math.max(product.original_price || 0, product.price);
+    else if (originalPrice && price >= originalPrice) originalPrice = null;
+    if (originalPrice !== null && originalPrice <= price) originalPrice = null;
+    button.disabled = true; button.textContent = "GUARDANDO...";
+    try {
+      const { error } = await client.from("products").update({
+        name: document.getElementById("editName").value.trim(), price, original_price: originalPrice,
+        category: document.getElementById("editCategory").value, size: document.getElementById("editSize").value.trim() || null,
+        length_cm: numberOrNull(document.getElementById("editLength").value), chest_width_cm: numberOrNull(document.getElementById("editChestWidth").value),
+        condition: document.getElementById("editCondition").value.trim() || null, description: document.getElementById("editDescription").value.trim() || null,
+        updated_at: new Date().toISOString()
+      }).eq("id", product.id);
+      if (error) { notice(error.message, "error"); return; }
+      editDialog.close(); notice("Prenda actualizada.");
+      await loadData();
+    } catch (error) {
+      console.error("Error actualizando la prenda:", error);
+      notice(error.message || "No se pudo actualizar la prenda.", "error");
+    } finally {
+      button.disabled = false; button.textContent = "GUARDAR CAMBIOS";
+    }
   });
   inventory.addEventListener("change", async (event) => {
     const select = event.target.closest("[data-availability]");
