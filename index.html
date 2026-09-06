@@ -34,9 +34,31 @@
         <a href="NewDrop.html">NEW DROP</a><a href="#catalogo">SHOP</a
         ><a href="#contacto">CONTACTO</a>
       </nav>
+      <button
+        class="mobile-menu-toggle"
+        id="mobileMenuToggle"
+        type="button"
+        aria-controls="mobileMenu"
+        aria-expanded="false"
+        aria-label="Abrir menú"
+      >
+        <span></span><span></span><span></span>
+      </button>
       <a class="header-cta" data-whatsapp="general" href="#contacto"
         >WHATSAPP ↗</a
       >
+      <div class="mobile-menu" id="mobileMenu" aria-label="Menú móvil">
+        <a href="NewDrop.html">NEW DROP</a>
+        <a href="#contacto">CONTACTO</a>
+        <p>CATEGORÍAS</p>
+        <a href="#catalogo" data-menu-category="jacket_damas">JACKET DAMAS</a>
+        <a href="#catalogo" data-menu-category="jacket_caballeros">JACKET CABALLEROS</a>
+        <a href="#catalogo" data-menu-category="pantalones">PANTALONES</a>
+        <a href="#catalogo" data-menu-category="chalecos">CHALECOS</a>
+        <a href="#catalogo" data-menu-category="tallas_plus">TALLAS PLUS</a>
+        <a href="#catalogo" data-menu-category="ropa_ninos">ROPA NIÑOS</a>
+        <a href="#catalogo" data-menu-category="mochilas">MOCHILAS</a>
+      </div>
     </header>
     <main>
       <section class="hero" id="inicio">
@@ -72,10 +94,23 @@
         <p class="hero-side"> SAN JOSÉ, CR</p>
       </section>
       <div class="ticker" aria-label="Información de la tienda">
-        <div>
-          ENVÍOS A TODO COSTA RICA <b>✶</b> PIEZAS ÚNICAS <b>✶</b> DROPS
-          LIMITADOS <b>✶</b> CONSULTAS POR WHATSAPP <b>✶</b> ENVÍOS A TODO COSTA
-          RICA <b>✶</b> PIEZAS ÚNICAS <b>✶</b>
+        <div class="ticker-track">
+          <div class="ticker-group">
+            DROPS LIMITADOS <b>✶</b> CONSULTAS POR WHATSAPP <b>✶</b> ENVÍOS A TODO
+            COSTA RICA <b>✶</b> PIEZAS ÚNICAS <b>✶</b>
+          </div>
+          <div class="ticker-group" aria-hidden="true">
+            DROPS LIMITADOS <b>✶</b> CONSULTAS POR WHATSAPP <b>✶</b> ENVÍOS A TODO
+            COSTA RICA <b>✶</b> PIEZAS ÚNICAS <b>✶</b>
+          </div>
+          <div class="ticker-group" aria-hidden="true">
+            DROPS LIMITADOS <b>✶</b> CONSULTAS POR WHATSAPP <b>✶</b> ENVÍOS A TODO
+            COSTA RICA <b>✶</b> PIEZAS ÚNICAS <b>✶</b>
+          </div>
+          <div class="ticker-group" aria-hidden="true">
+            DROPS LIMITADOS <b>✶</b> CONSULTAS POR WHATSAPP <b>✶</b> ENVÍOS A TODO
+            COSTA RICA <b>✶</b> PIEZAS ÚNICAS <b>✶</b>
+          </div>
         </div>
       </div>
       <section class="catalog-section" id="catalogo">

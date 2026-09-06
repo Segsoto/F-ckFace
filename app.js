@@ -33,6 +33,34 @@
     render();
     document.getElementById("productGrid").scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  const mobileMenu = document.getElementById("mobileMenu");
+  const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+  function closeMobileMenu() {
+    if (!mobileMenu || !mobileMenuToggle) return;
+    mobileMenu.classList.remove("is-open");
+    mobileMenuToggle.setAttribute("aria-expanded", "false");
+    mobileMenuToggle.setAttribute("aria-label", "Abrir menú");
+  }
+  if (mobileMenu && mobileMenuToggle) {
+    mobileMenuToggle.addEventListener("click", () => {
+      const isOpen = mobileMenu.classList.toggle("is-open");
+      mobileMenuToggle.setAttribute("aria-expanded", String(isOpen));
+      mobileMenuToggle.setAttribute("aria-label", isOpen ? "Cerrar menú" : "Abrir menú");
+    });
+    mobileMenu.addEventListener("click", (event) => {
+      const link = event.target.closest("a");
+      if (!link) return;
+      const category = link.dataset.menuCategory;
+      if (category) {
+        event.preventDefault();
+        selectCategory(category);
+      }
+      closeMobileMenu();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMobileMenu();
+    });
+  }
   function openProduct(product) {
     const gallery = document.getElementById("dialogGallery");
     const images = Array.isArray(product.image_urls) && product.image_urls.length
