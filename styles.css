@@ -184,10 +184,10 @@ h2 em {
 .hero-art {
   position: absolute;
   right: 4vw;
-  bottom: 7vw;
+  top: 3vw;
   z-index: 2;
   transform: rotate(4deg);
-  width: min(18vw, 240px);
+  width: min(15vw, 200px);
   aspect-ratio: 1;
   background: var(--red);
   padding: 2px;
@@ -696,10 +696,9 @@ footer a {
     font-size: 75px;
   }
   .hero-art {
-    width: 160px;
+    width: 140px;
     right: 5vw;
-    top: auto;
-    bottom: 18vw;
+    top: 5vw;
     transform: rotate(4deg);
   }
   .hero-stamp {
