@@ -156,6 +156,15 @@ as $$
   select * from public.products where status = 'published' order by created_at desc;
 $$;
 
+-- Verifica el estado actual de una prenda antes de mostrar sus datos de contacto.
+create or replace function public.get_public_product(p_product_id uuid)
+returns setof public.products
+language sql stable security definer set search_path = public
+as $$
+  select * from public.products
+  where id = p_product_id and status = 'published';
+$$;
+
 -- Las prendas exclusivas se devuelven solo si el código es correcto y el período está activo.
 create or replace function public.get_exclusive_products(p_drop_id uuid, p_password text)
 returns setof public.products
@@ -185,6 +194,7 @@ grant execute on function public.release_due_drops() to anon, authenticated;
 grant execute on function public.save_active_drop(timestamptz, timestamptz, text, text) to authenticated;
 grant execute on function public.get_current_drop() to anon, authenticated;
 grant execute on function public.get_public_catalog() to anon, authenticated;
+grant execute on function public.get_public_product(uuid) to anon, authenticated;
 grant execute on function public.get_exclusive_products(uuid, text) to anon, authenticated;
 
 alter table public.admin_profiles enable row level security;

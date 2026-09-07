@@ -7,7 +7,7 @@
   const closed = document.getElementById("closedDrop");
   const dialog = document.getElementById("productDialog");
   const whatsappButton = document.getElementById("dialogWhatsapp");
-  let products = [], dropTimer, activeDrop, selectedCategory = null;
+  let products = [], dropTimer, activeDrop, selectedCategory = null, accessPassword = null;
   const categories = {
     jacket_damas: ["JACKET DAMAS", "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=900&q=80"],
     jacket_caballeros: ["JACKET CABALLEROS", "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=900&q=80"],
@@ -78,6 +78,7 @@
   async function unlock(password) {
     const { data, error } = await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: password });
     if (error) { document.getElementById("accessMessage").textContent = "La contraseña no es válida o el acceso ya no está disponible."; return false; }
+    accessPassword = password;
     localStorage.setItem(passwordKey(activeDrop), JSON.stringify({ password, expiresAt: activeDrop.public_at }));
     products = data || []; selectedCategory = null; renderCategories(); renderProducts();
     form.hidden = true; document.getElementById("accessGranted").hidden = false; return true;
@@ -131,7 +132,22 @@
       button.disabled = false;
     }
   });
-  function openProduct(product) {
+  async function openProduct(product) {
+    if (!product || !client || !activeDrop?.id || !accessPassword) return;
+    try {
+      const { data, error } = await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: accessPassword });
+      if (error) throw error;
+      const freshProduct = data?.find((item) => item.id === product.id);
+      if (!freshProduct) {
+        alert("Esta prenda ya no está disponible.");
+        return;
+      }
+      product = freshProduct;
+    } catch (error) {
+      console.error("No se pudo verificar la disponibilidad de la prenda:", error);
+      alert("No se pudo verificar la disponibilidad. Intentá nuevamente.");
+      return;
+    }
     const gallery = document.getElementById("dialogGallery");
     const images = normalizeImages(product);
     const mainImage = document.getElementById("dialogImage");

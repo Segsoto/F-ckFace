@@ -61,7 +61,27 @@
       if (event.key === "Escape") closeMobileMenu();
     });
   }
-  function openProduct(product) {
+  async function openProduct(product) {
+    if (!product || !client) return;
+    whatsappButton.disabled = true;
+    whatsappButton.setAttribute("aria-busy", "true");
+    try {
+      const { data, error } = await client.rpc("get_public_product", { p_product_id: product.id });
+      if (error) throw error;
+      const freshProduct = data?.[0];
+      if (!freshProduct) {
+        alert("Esta prenda ya no está disponible.");
+        return;
+      }
+      product = freshProduct;
+    } catch (error) {
+      console.error("No se pudo verificar la disponibilidad de la prenda:", error);
+      alert("No se pudo verificar la disponibilidad. Intentá nuevamente.");
+      return;
+    } finally {
+      whatsappButton.disabled = false;
+      whatsappButton.removeAttribute("aria-busy");
+    }
     const gallery = document.getElementById("dialogGallery");
     const images = Array.isArray(product.image_urls) && product.image_urls.length
       ? product.image_urls.filter(Boolean)
