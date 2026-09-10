@@ -137,8 +137,8 @@
     for (const file of selected) {
       if (!file.type.startsWith("image/"))
         throw new Error("Solo podés cargar archivos de imagen.");
-      if (file.size > 5 * 1024 * 1024)
-        throw new Error("Cada imagen debe pesar menos de 5 MB.");
+      if (file.size > 10 * 1024 * 1024)
+        throw new Error("Cada imagen debe pesar menos de 10 MB.");
       const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${filename(file.name)}`;
       const { error } = await client.storage
         .from("product-images")
