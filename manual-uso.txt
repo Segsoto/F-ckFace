@@ -1,0 +1,75 @@
+MANUAL DE USO - F-CK FACE
+=========================
+
+1. ACCESO AL PANEL DE ADMINISTRACION
+
+1. Abra la direccion del sitio y agregue /admin.html al final.
+2. Ingrese con el correo y la contrasena registrados en Supabase.
+3. El usuario administrador autorizado actualmente es:
+   f-ck@face.com y la contraseña es Fuckface2026
+
+4. Para cerrar la sesion, use el boton CERRAR SESION.
+
+IMPORTANTE: El usuario y contraseña tiene que ser exactamente igual al brindado tanto aca por el correo
+
+
+2. PROGRAMAR UN NEW DROP
+
+Desde el panel, en la seccion PROXIMO DROP:
+
+1. Seleccione la fecha y hora de APERTURA EXCLUSIVA.
+2. Seleccione la fecha y hora de APERTURA PUBLICA.
+3. Escriba la contrasena que se compartira con la comunidad.
+4. Agregue una nota opcional sobre el drop.
+5. Presione PROGRAMAR DROP.
+
+La apertura exclusiva ocurre primero. La apertura publica debe ser posterior.
+Solo puede existir un drop activo a la vez.
+
+
+3. AGREGAR UNA PRENDA
+
+En la seccion ADD TO NEW DROP:
+
+1. Complete nombre, precio, categoria y talla.
+2. Agregue las medidas y el estado de la prenda cuando corresponda.
+3. Escriba una descripcion opcional.
+4. Seleccione las fotos de la prenda.
+5. Presione AGREGAR A NEW DROP.
+
+La prenda queda visible durante el acceso exclusivo. Al llegar la fecha publica,
+aparece automaticamente en la tienda general.
+
+
+4. ACCESO DE LOS CLIENTES
+
+1. Comparta con la comunidad la direccion NewDrop.html.
+2. Comparta la contrasena del drop cuando inicie la apertura exclusiva.
+3. Los clientes ingresan la contrasena y consultan las prendas disponibles.
+4. Despues de la apertura publica, las prendas aparecen en la tienda principal.
+
+
+5. CONSULTAS Y VENTAS
+
+El cliente puede abrir una prenda y presionar CONSULTAR POR WHATSAPP.
+La consulta se envia con el nombre y precio de la pieza. La venta se coordina
+directamente por WhatsApp.
+
+
+6. INVENTARIO
+
+Desde el panel puede revisar las piezas activas, editar sus datos y eliminar
+las prendas que ya fueron vendidas. Las prendas apartadas o pendientes de pago
+pueden continuar visibles con su aviso correspondiente.
+
+
+7. RECOMENDACIONES DE SEGURIDAD
+
+- POR NADA DEL MUNDO comparta la contrasena del panel de administracion.
+- La contrasena del New Drop es independiente de la cuenta del administrador.
+
+
+SOPORTE TECNICO
+---------------
+Si hay problemas llamar inmediatamente al 
++506 89652370
