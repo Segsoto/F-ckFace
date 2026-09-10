@@ -102,6 +102,24 @@ Abrir `admin.html` en el sitio publicado.
 
 Solo hay un drop activo. Una vez que se abre al público, se puede crear el siguiente.
 
+### Editar un drop y consultar su contraseña
+
+El drop activo se carga automáticamente en el formulario. Podés cambiar su nombre,
+fechas y horas de apertura, contraseña y nota con **Guardar cambios**. Dejá la
+contraseña vacía para conservarla. Los ojos permiten mostrar u ocultar las contraseñas
+del inicio de sesión, del formulario y del acceso de la comunidad.
+
+**Contraseña guardada** permite consultarla nuevamente, solo con una sesión de
+administrador. Se almacena en `drop_passwords`, protegida por RLS y sin acceso público;
+la validación del acceso sigue usando el hash. Las contraseñas anteriores a esta
+actualización deben introducirse otra vez para disponer de esta consulta.
+
+**Desactivar drop** cierra su acceso e impide la publicación automática. Conserva las
+prendas vinculadas sin publicar; no las transfiere al siguiente drop.
+
+Para actualizar una instalación existente, ejecutar `drop-management.sql` antes de
+publicar los archivos web. Las instalaciones nuevas usan `supabase-schema.sql` completo.
+
 ### Añadir una prenda
 
 1. Completar nombre, precio, categoría, talla, largo y ancho de pecho cuando apliquen.

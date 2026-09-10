@@ -175,6 +175,8 @@ button:hover {
   font-size: 10px;
   letter-spacing: 0.08em;
 }
+#savedPasswordSection { margin-top: 18px; }
+button:disabled { opacity: .6; cursor: wait; }
 .message {
   display: none;
   padding: 12px;

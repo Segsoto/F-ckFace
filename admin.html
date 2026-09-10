@@ -13,6 +13,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="admin.css" />
+    <link rel="stylesheet" href="password-toggle.css" />
   </head>
   <body>
     <header>
@@ -36,7 +37,7 @@
               type="password"
               autocomplete="current-password"
               required /></label
-          ><button>INGRESAR ↗</button>
+          ><button type="submit">INGRESAR ↗</button>
         </form>
         <p class="hint">Los accesos se administran desde Supabase Auth.</p>
       </section>
@@ -58,6 +59,7 @@
               piezas disponibles pasan a la tienda pública automáticamente.
             </p>
             <form id="dropForm">
+              <label>NOMBRE DEL DROP<input id="dropName" required maxlength="160" placeholder="Ej. Drop de septiembre" /></label>
               <label
                 >APERTURA EXCLUSIVA<input
                   id="exclusiveAt"
@@ -81,9 +83,11 @@
                   rows="3"
                   placeholder="Ej. Piezas seleccionadas, una sola unidad."
                 ></textarea></label
-              ><button>PROGRAMAR DROP</button>
+              ><button type="submit" id="saveDropButton">PROGRAMAR DROP</button>
+              <button type="button" id="deactivateDropButton" hidden>DESACTIVAR DROP</button>
             </form>
             <div id="activeDrop" class="active-drop">SIN DROP PROGRAMADO</div>
+            <section id="savedPasswordSection" hidden><label>CONTRASEÑA GUARDADA<input id="savedDropPassword" type="password" readonly autocomplete="off" /></label><p class="subtle" id="savedPasswordHelp"></p></section>
           </section>
           <section class="panel product-panel">
             <p class="eyebrow">NUEVA PIEZA</p>
@@ -188,6 +192,7 @@
     </dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="password-toggle.js"></script>
     <script src="admin.js"></script>
   </body>
 </html>

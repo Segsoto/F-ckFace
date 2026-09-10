@@ -121,7 +121,7 @@
   }
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const button = form.querySelector("button");
+    const button = form.querySelector('button[type="submit"]');
     const password = document.getElementById("accessPassword").value;
     if (!password || button.disabled) return;
     button.disabled = true;

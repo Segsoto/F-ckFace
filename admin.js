@@ -76,7 +76,7 @@
         );
         return;
       }
-      const button = event.currentTarget.querySelector("button");
+      const button = event.currentTarget.querySelector('[type="submit"]');
       button.disabled = true;
       button.textContent = "INGRESANDO...";
       try {
@@ -116,6 +116,8 @@
     .getElementById("logoutButton")
     .addEventListener("click", async () => {
       await client.auth.signOut();
+      document.querySelectorAll('.password-field input').forEach(input => { input.value = ''; input.dispatchEvent(new Event('hide-password')); });
+      activeDrop = null;
       await setup();
     });
   document.getElementById("images").addEventListener("change", (event) => {
@@ -206,7 +208,7 @@
       event.preventDefault();
       const exclusiveAt = document.getElementById("exclusiveAt").value;
       const publicAt = document.getElementById("publicAt").value;
-      if (!exclusiveAt || !publicAt || new Date(exclusiveAt) <= new Date()) {
+      if (!exclusiveAt || !publicAt || (!activeDrop && new Date(exclusiveAt) <= new Date())) {
         notice("Elegí una apertura exclusiva futura.", "error");
         return;
       }
@@ -214,20 +216,43 @@
         notice("La apertura pública debe ser posterior a la exclusiva.", "error");
         return;
       }
-      const { error } = await client.rpc("save_active_drop", {
-        p_exclusive_at: new Date(exclusiveAt).toISOString(),
-        p_public_at: new Date(publicAt).toISOString(),
-        p_password: document.getElementById("dropPassword").value,
-        p_description: document.getElementById("dropText").value || null,
-      });
-      if (error) {
-        notice(error.message, "error");
-        return;
+      const button = document.getElementById('saveDropButton');
+      button.disabled = true;
+      document.getElementById('deactivateDropButton').disabled = true;
+      try {
+        const { error } = await client.rpc("save_managed_drop", {
+          p_drop_id: activeDrop?.id || null,
+          p_name: document.getElementById('dropName').value.trim(),
+          p_exclusive_at: new Date(exclusiveAt).toISOString(),
+          p_public_at: new Date(publicAt).toISOString(),
+          p_password: document.getElementById("dropPassword").value,
+          p_description: document.getElementById("dropText").value || null,
+        });
+        if (error) throw error;
+        notice(activeDrop ? "Drop actualizado correctamente." : "Drop programado correctamente.");
+        document.getElementById("dropPassword").value = "";
+        document.getElementById("dropPassword").dispatchEvent(new Event('hide-password'));
+        await loadData();
+      } catch (error) {
+        notice(error.message || 'No se pudo guardar el drop.', 'error');
+      } finally {
+        button.disabled = false;
+        document.getElementById('deactivateDropButton').disabled = false;
       }
-      notice("Drop programado correctamente.");
-      document.getElementById("dropPassword").value = "";
-      await loadData();
     });
+  document.getElementById('deactivateDropButton').addEventListener('click', async (event) => {
+    if (!activeDrop) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    document.getElementById('saveDropButton').disabled = true;
+    try {
+      const { error } = await client.rpc('deactivate_drop', { p_drop_id: activeDrop.id });
+      if (error) throw error;
+      await loadData();
+      notice('Drop desactivado. Sus prendas se conservan sin publicar.');
+    } catch (error) { notice(error.message || 'No se pudo desactivar el drop.', 'error'); }
+    finally { button.disabled = false; document.getElementById('saveDropButton').disabled = false; }
+  });
   async function loadData() {
     const { error: releaseError } = await client.rpc("release_due_drops");
     if (releaseError) console.warn("No se pudieron publicar drops vencidos:", releaseError);
@@ -254,9 +279,21 @@
     const drop = dropsError ? activeDrop : drops?.[0] || null;
     activeDrop = drop;
     document.getElementById("activeDrop").textContent = drop
-      ? `EXCLUSIVO: ${new Date(drop.exclusive_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })} · PÚBLICO: ${new Date(drop.public_at || drop.release_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })}`
+      ? `${drop.name || "DROP"} · EXCLUSIVO: ${new Date(drop.exclusive_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })} · PÚBLICO: ${new Date(drop.public_at || drop.release_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })}`
       : "SIN DROP PROGRAMADO";
+    document.getElementById('saveDropButton').textContent = drop ? 'GUARDAR CAMBIOS' : 'PROGRAMAR DROP';
+    document.getElementById('deactivateDropButton').hidden = !drop;
+    document.getElementById('savedPasswordSection').hidden = !drop;
+    const savedPassword = document.getElementById('savedDropPassword');
+    savedPassword.value = '';
+    savedPassword.dispatchEvent(new Event('hide-password'));
+    document.getElementById('savedPasswordHelp').textContent = '';
+    if (!drop) document.getElementById('dropForm').reset();
     if (drop) {
+      document.getElementById('dropName').value = drop.name || 'New Drop';
+      const { data: secret, error: secretError } = await client.from('drop_passwords').select('password').eq('drop_id', drop.id).maybeSingle();
+      savedPassword.value = secret?.password || '';
+      document.getElementById('savedPasswordHelp').textContent = secretError ? 'No se pudo consultar la contraseña guardada.' : secret ? 'Solo visible para administradores. Usá el ojo para consultarla.' : 'Contraseña antigua: volvé a ingresarla y guardá el drop para poder consultarla aquí.';
       document.getElementById("exclusiveAt").value = localDateTimeValue(drop.exclusive_at);
       document.getElementById("publicAt").value = localDateTimeValue(drop.public_at || drop.release_at);
       document.getElementById("dropText").value = drop.description || "";

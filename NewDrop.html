@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="password-toggle.css" />
   </head>
   <body class="new-drop-page">
     <div class="site-banner"><span>ACCESO ANTICIPADO / COMUNIDAD F-CK FACE</span><span>PIEZAS ÚNICAS · STREETWEAR</span><span>ACCESO ANTICIPADO / COMUNIDAD F-CK FACE</span></div>
@@ -34,7 +35,7 @@
       <section class="exclusive-content">
         <form id="accessForm" class="access-form" hidden>
           <label>CONTRASEÑA DE LA COMUNIDAD<input id="accessPassword" type="password" autocomplete="current-password" required /></label>
-          <button class="button button-red">VER PIEZAS ↗</button>
+          <button type="submit" class="button button-red">VER PIEZAS ↗</button>
           <p class="access-message" id="accessMessage" role="alert"></p>
         </form>
         <div id="accessGranted" class="access-granted" hidden>ACCESO EXCLUSIVO ACTIVO</div>
@@ -65,6 +66,7 @@
     </a>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="password-toggle.js"></script>
     <script src="newdrop.js"></script>
   </body>
 </html>
