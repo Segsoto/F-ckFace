@@ -33,11 +33,12 @@
       data: { user },
     } = await client.auth.getUser();
     if (!user) return false;
-    const { data } = await client
+    const { data, error } = await client
       .from("admin_profiles")
       .select("user_id")
       .eq("user_id", user.id)
       .maybeSingle();
+    if (error) throw error;
     return Boolean(data);
   }
   async function setup() {
@@ -132,6 +133,8 @@
     if (files.length > 7) throw new Error("Podés cargar un máximo de 7 fotos.");
     const urls = [];
     for (const file of selected) {
+      if (!file.type.startsWith("image/"))
+        throw new Error("Solo podés cargar archivos de imagen.");
       if (file.size > 5 * 1024 * 1024)
         throw new Error("Cada imagen debe pesar menos de 5 MB.");
       const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${filename(file.name)}`;
@@ -264,7 +267,7 @@
       products
         .map(
           (product) =>
-            `<article class="inventory-row"><img src="${product.image_urls?.[0] || "img/logo1.jpg"}" alt=""><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${product.status}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${product.id}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${product.id}">EDITAR</button><button class="delete" data-delete="${product.id}">VENDIDA / ELIMINAR</button></article>`,
+            `<article class="inventory-row"><img src="${safe(product.image_urls?.[0] || "img/logo1.jpg")}" alt=""><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${safe(product.status)}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${safe(product.id)}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${safe(product.id)}">EDITAR</button><button class="delete" data-delete="${safe(product.id)}">VENDIDA / ELIMINAR</button></article>`,
         )
         .join("") || "<p>NO HAY PIEZAS TODAVÍA.</p>";
   }

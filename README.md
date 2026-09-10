@@ -31,11 +31,23 @@ La tienda está pensada para vender mediante *drops*:
 | `admin.js` | Inicio de sesión, carga de imágenes, alta/eliminación de piezas y programación de drops. |
 | `config.js` | URL de Supabase, clave pública y número de WhatsApp. |
 | `supabase-schema.sql` | Tablas, función automática, bucket de fotos y políticas RLS. |
+| `404.html` / `404.css` | Página personalizada para rutas inexistentes. |
+| `robots.txt` | Permite rastrear la tienda y bloquea archivos internos. |
 | `img/logo1.jpg` | Recurso visual actual de la marca. |
 
-La carpeta `Camisadel10/` es una referencia histórica de otro proyecto. No forma parte del funcionamiento actual de F-ck Face.
-
 ## Configuración inicial
+
+### Seguridad antes de publicar
+
+- Ejecutar nuevamente [`supabase-schema.sql`](supabase-schema.sql) completo en el proyecto que usa `config.js`.
+- En Supabase Auth, desactivar los registros públicos y exigir confirmación de email.
+- Crear el usuario administrador desde **Authentication → Users** y autorizarlo únicamente en `admin_profiles`.
+- Activar MFA para cada cuenta administradora y usar una contraseña única, larga y no reutilizada.
+- Configurar en el hosting una regla de headers para `admin.html` con `Cache-Control: no-store` y mantener `404.html` como página de error.
+- Reemplazar las URLs relativas de `canonical`, Open Graph y JSON-LD por la URL absoluta del dominio publicado.
+- Crear `sitemap.xml` con esa misma URL absoluta y añadirla como `Sitemap:` en `robots.txt`.
+
+La URL de `admin.html` no necesita ocultarse: una URL estática puede descubrirse. El acceso se protege en el servidor mediante Supabase Auth, RLS y la pertenencia a `admin_profiles`; nunca mediante una contraseña JavaScript.
 
 ### 1. Configurar Supabase
 
@@ -173,11 +185,16 @@ Antes de publicar cambios, comprobar que:
 - Exista al menos un administrador en `admin_profiles`.
 - El bucket `product-images` esté creado y público.
 - El número de WhatsApp sea el correcto.
+- El dominio real ya esté configurado en canonical, Open Graph, JSON-LD y sitemap.
 
 ## Consideraciones de seguridad y mantenimiento
 
 - Mantener RLS activado. No crear políticas públicas de escritura para `products`, `drops` ni Storage.
 - No exponer claves secretas de Supabase en repositorios o frontend.
+- La clave `publishable`/anon de Supabase no es un secreto; la seguridad depende de RLS. Revocar y rotar cualquier `service_role` si alguna vez fue publicada.
+- Las funciones públicas solo devuelven datos filtrados; el acceso de administración requiere sesión autenticada y una fila propia en `admin_profiles`.
+- Las cargas de Storage deben conservar una ruta que empiece con el UUID del usuario administrador. No relajar esa política a `bucket_id` solamente.
+- Configurar límites de intentos y MFA en **Authentication → Settings**. La contraseña del New Drop no sustituye la autenticación del panel.
 - Las fotos eliminadas desde el inventario actualmente eliminan el registro de la prenda, pero no borran automáticamente sus archivos del bucket. Es una mejora pendiente para evitar fotos sin uso.
 - El botón **Editar** del inventario permite corregir los datos de cualquier pieza publicada o de New Drop. Al reducir el precio, guarda el importe anterior y calcula automáticamente la rebaja; **Quitar descuento** vuelve a mostrar un único precio.
 - Si se agregan categorías, cambiar las opciones del `<select>` en `admin.html`, las tarjetas y el objeto `categoryNames` en `app.js`/`index.html`, y la restricción `check` de `products.category` en la base de datos mediante una migración.

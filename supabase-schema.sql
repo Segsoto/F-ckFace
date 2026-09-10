@@ -67,6 +67,8 @@ where p.drop_id is null and p.status = 'new_drop';
 create or replace function public.is_admin()
 returns boolean language sql stable security definer set search_path = public
 as $$ select exists (select 1 from public.admin_profiles where user_id = auth.uid()) $$;
+revoke execute on function public.is_admin() from public;
+grant execute on function public.is_admin() to authenticated;
 
 -- En la apertura pública, solo se publican las piezas del drop correspondiente.
 create or replace function public.release_due_drops()
@@ -101,8 +103,11 @@ begin
   if not public.is_admin() then
     raise exception 'No autorizado.';
   end if;
-  if p_exclusive_at <= now() or p_public_at <= p_exclusive_at then
+  if p_exclusive_at is null or p_public_at is null or p_exclusive_at <= now() or p_public_at <= p_exclusive_at then
     raise exception 'Las fechas del drop no son válidas.';
+  end if;
+  if length(coalesce(p_password, '')) > 200 or length(coalesce(p_description, '')) > 2000 then
+    raise exception 'Los datos del drop exceden el tamaño permitido.';
   end if;
 
   select id into active_id from public.drops where is_active order by created_at desc limit 1;
@@ -171,6 +176,9 @@ returns setof public.products
 language plpgsql security definer set search_path = public
 as $$
 begin
+  if p_drop_id is null or p_password is null or length(p_password) > 200 then
+    raise exception 'Contraseña incorrecta o acceso no disponible.';
+  end if;
   if not exists (
     select 1 from public.drops d
     where d.id = p_drop_id
@@ -197,6 +205,12 @@ grant execute on function public.get_public_catalog() to anon, authenticated;
 grant execute on function public.get_public_product(uuid) to anon, authenticated;
 grant execute on function public.get_exclusive_products(uuid, text) to anon, authenticated;
 
+-- Las tablas no se consultan directamente desde el navegador público: el catálogo
+-- y los drops pasan por las funciones anteriores, que filtran sus resultados.
+revoke all on table public.admin_profiles, public.drops, public.products from anon;
+grant select on table public.admin_profiles to authenticated;
+grant all on table public.drops, public.products to authenticated;
+
 alter table public.admin_profiles enable row level security;
 alter table public.drops enable row level security;
 alter table public.products enable row level security;
@@ -214,9 +228,9 @@ insert into storage.buckets (id, name, public) values ('product-images', 'produc
 drop policy if exists "admins upload product images" on storage.objects;
 drop policy if exists "admins update product images" on storage.objects;
 drop policy if exists "admins delete product images" on storage.objects;
-create policy "admins upload product images" on storage.objects for insert to authenticated with check (bucket_id = 'product-images' and public.is_admin());
-create policy "admins update product images" on storage.objects for update to authenticated using (bucket_id = 'product-images' and public.is_admin());
-create policy "admins delete product images" on storage.objects for delete to authenticated using (bucket_id = 'product-images' and public.is_admin());
+create policy "admins upload product images" on storage.objects for insert to authenticated with check (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%'));
+create policy "admins update product images" on storage.objects for update to authenticated using (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%')) with check (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%'));
+create policy "admins delete product images" on storage.objects for delete to authenticated using (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%'));
 
 -- Obliga a PostgREST a detectar los RPC recién creados o actualizados.
 -- Sin este aviso, el endpoint /rpc/save_active_drop puede responder 404 hasta
