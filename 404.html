@@ -2,6 +2,12 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // El hosting estático distingue mayúsculas y minúsculas en las rutas.
+      if (/^\/newdrop(?:\.html)?\/?$/i.test(window.location.pathname) && window.location.pathname !== '/NewDrop.html') {
+        window.location.replace('/NewDrop.html' + window.location.search + window.location.hash);
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, follow" />
     <meta name="theme-color" content="#9e1013" />

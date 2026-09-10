@@ -189,8 +189,9 @@ h2 em {
   transform: rotate(4deg);
   width: min(15vw, 200px);
   aspect-ratio: 1;
-  background: var(--red);
-  padding: 2px;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
   filter: none;
 }
 .hero-art img {

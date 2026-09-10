@@ -130,7 +130,18 @@
   function updatePublicCountdown(drop) {
     clearInterval(publicTimer); const target = document.getElementById("publicDropCountdown");
     if (!drop?.public_at) { target.textContent = "PRÓXIMO DROP: PROGRAMANDO"; return; }
-    const tick = () => { const difference = new Date(drop.public_at).getTime() - Date.now(); if (difference <= 0) { clearInterval(publicTimer); target.textContent = "NUEVAS PIEZAS DISPONIBLES AHORA"; return; } const hours = Math.floor(difference / 3600000); const minutes = Math.floor((difference % 3600000) / 60000); target.textContent = `DROP PÚBLICO EN ${String(hours).padStart(2, "0")}H ${String(minutes).padStart(2, "0")}MIN`; };
+    const tick = () => {
+      const difference = new Date(drop.public_at).getTime() - Date.now();
+      if (difference <= 0) {
+        clearInterval(publicTimer);
+        target.textContent = "NUEVAS PIEZAS DISPONIBLES AHORA";
+        return;
+      }
+      const days = Math.floor(difference / 86400000);
+      const hours = Math.floor((difference % 86400000) / 3600000);
+      const minutes = Math.floor((difference % 3600000) / 60000);
+      target.textContent = `DROP PÚBLICO EN ${days} ${days === 1 ? "DÍA" : "DÍAS"} ${String(hours).padStart(2, "0")}H ${String(minutes).padStart(2, "0")}MIN`;
+    };
     tick(); publicTimer = setInterval(tick, 1000);
   }
   async function load() {
