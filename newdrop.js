@@ -1,6 +1,6 @@
 (function () {
   const config = window.FUCK_FACE_CONFIG;
-  const whatsapp = config?.whatsappNumber || "50689652370";
+  const whatsapp = config?.whatsappNumber || "50689168397";
   const client = config?.url && config?.anonKey && window.supabase ? window.supabase.createClient(config.url, config.anonKey) : null;
   const grid = document.getElementById("exclusiveProductGrid");
   const form = document.getElementById("accessForm");

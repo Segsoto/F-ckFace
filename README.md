@@ -67,7 +67,7 @@ En `config.js` se definen estas variables:
 window.FUCK_FACE_CONFIG = {
   url: 'https://<project-ref>.supabase.co',
   anonKey: 'sb_publishable_...',
-  whatsappNumber: '50689652370'
+  whatsappNumber: '50689168397'
 };
 ```
 
@@ -178,7 +178,7 @@ Si el negocio necesita que el movimiento ocurra aun cuando nadie abra el sitio, 
 El número está centralizado en `config.js`, sin el símbolo `+`:
 
 ```js
-whatsappNumber: '50689652370'
+whatsappNumber: '50689168397'
 ```
 
 En el modal de producto se genera una URL `wa.me` con un mensaje como:
