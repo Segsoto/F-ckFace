@@ -50,8 +50,13 @@
           <button class="outline" id="logoutButton">CERRAR SESIÓN</button>
         </div>
         <p class="message" id="message" role="status"></p>
+        <nav class="admin-tabs" aria-label="Módulos del panel" role="tablist">
+          <button class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="publishModule" data-module="publishModule">PUBLICAR PRENDA</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="dropModule" data-module="dropModule">CONFIGURAR DROP</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="publishedModule" data-module="publishedModule">PRENDAS PUBLICADAS</button>
+        </nav>
         <div class="admin-grid">
-          <section class="panel drop-panel">
+          <section class="panel drop-panel admin-module" id="dropModule" data-admin-module="dropModule" role="tabpanel" hidden>
             <p class="eyebrow">CALENDARIO</p>
             <h2>PRÓXIMO DROP</h2>
             <p class="subtle">
@@ -89,7 +94,7 @@
             <div id="activeDrop" class="active-drop">SIN DROP PROGRAMADO</div>
             <section id="savedPasswordSection" hidden><label>CONTRASEÑA GUARDADA<input id="savedDropPassword" type="password" readonly autocomplete="off" /></label><p class="subtle" id="savedPasswordHelp"></p></section>
           </section>
-          <section class="panel product-panel">
+          <section class="panel product-panel admin-module" id="publishModule" data-admin-module="publishModule" role="tabpanel">
             <p class="eyebrow">NUEVA PIEZA</p>
             <h2>ADD TO NEW DROP</h2>
             <form id="productForm">
@@ -146,13 +151,34 @@
             </form>
           </section>
         </div>
-        <section class="inventory">
+        <section class="inventory admin-module" id="publishedModule" data-admin-module="publishedModule" role="tabpanel" hidden>
           <div class="inventory-title">
             <div>
               <p class="eyebrow">INVENTARIO</p>
-              <h2>PIEZAS ACTIVAS</h2>
+              <h2>PRENDAS PUBLICADAS</h2>
             </div>
             <span id="inventoryCount"></span>
+          </div>
+          <label class="inventory-search" for="inventorySearch">
+            BUSCAR PRENDA
+            <span class="search-field"><span aria-hidden="true">⌕</span><input id="inventorySearch" type="search" placeholder="Nombre, categoría, talla..." autocomplete="off" /></span>
+          </label>
+          <div class="inventory-filters" aria-label="Filtros de prendas">
+            <label>TALLA<select id="inventorySizeFilter"><option value="">TODAS LAS TALLAS</option></select></label>
+            <label>CATEGORÍA<select id="inventoryCategoryFilter">
+              <option value="">TODAS LAS CATEGORÍAS</option>
+              <option value="jacket_damas">JACKET DAMAS</option>
+              <option value="jacket_caballeros">JACKET CABALLEROS</option>
+              <option value="pantalones">PANTALONES</option>
+              <option value="chalecos">CHALECOS</option>
+              <option value="tallas_plus">TALLAS PLUS</option>
+              <option value="ropa_ninos">ROPA NIÑOS</option>
+              <option value="mochilas">BOLSOS / MOCHILAS</option>
+            </select></label>
+            <label>PRECIO MÍNIMO<input id="inventoryMinPrice" type="number" min="0" step="500" placeholder="₡ mínimo" /></label>
+            <label>PRECIO MÁXIMO<input id="inventoryMaxPrice" type="number" min="0" step="500" placeholder="₡ máximo" /></label>
+            <label>DESCUENTO<select id="inventoryDiscountFilter"><option value="">TODOS</option><option value="discounted">CON DESCUENTO</option><option value="full-price">SIN DESCUENTO</option></select></label>
+            <button class="clear-filters" id="clearInventoryFilters" type="button">LIMPIAR FILTROS</button>
           </div>
           <div id="inventoryList" class="inventory-list">
             <p>CARGANDO...</p>

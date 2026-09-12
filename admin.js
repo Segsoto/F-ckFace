@@ -30,7 +30,8 @@
   }
   const resetNewMeasurements = bindMeasurements("productForm", "productMeasurements", '[name="category"]');
   const resetEditMeasurements = bindMeasurements("editProductForm", "editMeasurements", '#editCategory');
-  let activeDrop = null, products = [], removeDiscountRequested = false;
+  let activeDrop = null, products = [], removeDiscountRequested = false, inventoryQuery = "";
+  const inventoryFilters = { size: "", category: "", minPrice: "", maxPrice: "", discount: "" };
   function notice(text, type = "success", target = message) {
     if (!target) return;
     target.textContent = text;
@@ -49,6 +50,19 @@
     date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
     return date.toISOString().slice(0, 16);
   }
+  document.querySelectorAll("[data-module]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const selectedModule = tab.dataset.module;
+      document.querySelectorAll("[data-admin-module]").forEach((module) => {
+        module.hidden = module.dataset.adminModule !== selectedModule;
+      });
+      document.querySelectorAll("[data-module]").forEach((item) => {
+        const selected = item === tab;
+        item.classList.toggle("is-active", selected);
+        item.setAttribute("aria-selected", String(selected));
+      });
+    });
+  });
   async function isAdmin() {
     const {
       data: { user },
@@ -147,6 +161,23 @@
       ? `${count} archivo${count !== 1 ? "s" : ""} seleccionado${count !== 1 ? "s" : ""}`
       : "Seleccionar archivos";
   });
+  async function optimizeImage(file) {
+    const maxDimension = 1800;
+    const maxBytes = 1.5 * 1024 * 1024;
+    if (file.size <= maxBytes) return file;
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((result) => result ? resolve(result) : reject(new Error("No se pudo preparar una imagen.")), "image/jpeg", 0.82);
+    });
+    return new File([blob], `${filename(file.name)}.jpg`, { type: "image/jpeg" });
+  }
   async function uploadImages(files) {
     const {
       data: { user },
@@ -154,21 +185,20 @@
     const selected = [...files].slice(0, 7);
     if (!selected.length) throw new Error("Seleccioná al menos una foto.");
     if (files.length > 7) throw new Error("Podés cargar un máximo de 7 fotos.");
-    const urls = [];
-    for (const file of selected) {
+    return Promise.all(selected.map(async (file) => {
       if (!file.type.startsWith("image/"))
         throw new Error("Solo podés cargar archivos de imagen.");
       if (file.size > 10 * 1024 * 1024)
         throw new Error("Cada imagen debe pesar menos de 10 MB.");
+      const preparedFile = await optimizeImage(file);
       const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${filename(file.name)}`;
       const { error } = await client.storage
         .from("product-images")
-        .upload(path, file, { upsert: false });
+        .upload(path, preparedFile, { upsert: false });
       if (error) throw error;
       const { data } = client.storage.from("product-images").getPublicUrl(path);
-      urls.push(data.publicUrl);
-    }
-    return urls;
+      return data.publicUrl;
+    }));
   }
   function numberOrNull(value) {
     if (value === "" || value == null) return null;
@@ -190,7 +220,7 @@
         const image_urls = await uploadImages(
           document.getElementById("images").files,
         );
-        const { error } = await client.from("products").insert({
+        const { data: insertedProduct, error } = await client.from("products").insert({
           name: data.get("name").trim(),
           price: numberOrNull(data.get("price")),
           category: data.get("category"),
@@ -202,19 +232,15 @@
           status: "new_drop",
           availability: "available",
           drop_id: activeDrop.id,
-        });
+        }).select().single();
         if (error) throw error;
         form.reset();
         resetNewMeasurements();
         document.getElementById("fileCount").textContent =
           "Seleccionar archivos";
+        products.unshift(insertedProduct);
+        renderInventory();
         notice("Pieza agregada a New Drop.");
-        try {
-          await loadData();
-        } catch (refreshError) {
-          console.error("La pieza se guardó, pero no se pudo actualizar la lista:", refreshError);
-          notice("La pieza se guardó. Actualizá la lista en unos segundos.", "error");
-        }
       } catch (error) {
         console.error(error);
         notice(error.message || "No se pudo agregar la pieza.", "error");
@@ -319,16 +345,73 @@
       document.getElementById("publicAt").value = localDateTimeValue(drop.public_at || drop.release_at);
       document.getElementById("dropText").value = drop.description || "";
     }
-    document.getElementById("inventoryCount").textContent =
-      `${products.length} PIEZAS`;
-    inventory.innerHTML =
-      products
-        .map(
-          (product) =>
-            `<article class="inventory-row"><img src="${safe(product.image_urls?.[0] || "img/logo1.jpg")}" alt=""><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${safe(product.status)}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${safe(product.id)}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${safe(product.id)}">EDITAR</button><button class="delete" data-delete="${safe(product.id)}">VENDIDA / ELIMINAR</button></article>`,
-        )
-        .join("") || "<p>NO HAY PIEZAS TODAVÍA.</p>";
+    renderInventory();
   }
+  function renderInventory() {
+    syncSizeFilterOptions();
+    const query = inventoryQuery.trim().toLocaleLowerCase();
+    const minPrice = Number(inventoryFilters.minPrice);
+    const maxPrice = Number(inventoryFilters.maxPrice);
+    const hasMinPrice = inventoryFilters.minPrice !== "" && Number.isFinite(minPrice);
+    const hasMaxPrice = inventoryFilters.maxPrice !== "" && Number.isFinite(maxPrice);
+    const visibleProducts = products.filter((product) => {
+      const discounted = Number(product.original_price) > Number(product.price);
+      const matchesQuery = !query || [product.name, product.category, product.size, product.status, product.condition, product.description]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase()
+        .includes(query);
+      const matchesSize = !inventoryFilters.size || (product.size || "").toLocaleLowerCase() === inventoryFilters.size;
+      const matchesCategory = !inventoryFilters.category || product.category === inventoryFilters.category;
+      const matchesMinPrice = !hasMinPrice || Number(product.price) >= minPrice;
+      const matchesMaxPrice = !hasMaxPrice || Number(product.price) <= maxPrice;
+      const matchesDiscount = !inventoryFilters.discount || (inventoryFilters.discount === "discounted" ? discounted : !discounted);
+      return matchesQuery && matchesSize && matchesCategory && matchesMinPrice && matchesMaxPrice && matchesDiscount;
+    });
+    const hasFilters = query || Object.values(inventoryFilters).some(Boolean);
+    document.getElementById("inventoryCount").textContent = query
+      ? `${visibleProducts.length} DE ${products.length} PIEZAS`
+      : hasFilters ? `${visibleProducts.length} DE ${products.length} PIEZAS`
+      : `${products.length} PIEZAS`;
+    inventory.innerHTML = visibleProducts.map((product) =>
+      `<article class="inventory-row"><img src="${safe(product.image_urls?.[0] || "img/logo1.jpg")}" alt="" loading="lazy" decoding="async"><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${safe(product.status)}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${safe(product.id)}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${safe(product.id)}">EDITAR</button><button class="delete" data-delete="${safe(product.id)}">VENDIDA / ELIMINAR</button></article>`
+    ).join("") || "<p>NO HAY PIEZAS TODAVÍA.</p>";
+  }
+  function syncSizeFilterOptions() {
+    const sizeFilter = document.getElementById("inventorySizeFilter");
+    const sizes = [...new Set(products.map((product) => product.size?.trim()).filter(Boolean))]
+      .sort((first, second) => first.localeCompare(second, "es", { numeric: true }));
+    const currentValue = inventoryFilters.size;
+    sizeFilter.innerHTML = `<option value="">TODAS LAS TALLAS</option>${sizes.map((size) => `<option value="${safe(size.toLocaleLowerCase())}">${safe(size.toUpperCase())}</option>`).join("")}`;
+    sizeFilter.value = sizes.some((size) => size.toLocaleLowerCase() === currentValue) ? currentValue : "";
+  }
+  document.getElementById("inventorySearch").addEventListener("input", (event) => {
+    inventoryQuery = event.target.value;
+    renderInventory();
+  });
+  document.querySelectorAll("#publishedModule .inventory-filters input, #publishedModule .inventory-filters select").forEach((control) => {
+    control.addEventListener("input", updateInventoryFilter);
+    control.addEventListener("change", updateInventoryFilter);
+  });
+  function updateInventoryFilter(event) {
+    const filterName = {
+      inventorySizeFilter: "size",
+      inventoryCategoryFilter: "category",
+      inventoryMinPrice: "minPrice",
+      inventoryMaxPrice: "maxPrice",
+      inventoryDiscountFilter: "discount",
+    }[event.target.id];
+    if (!filterName) return;
+    inventoryFilters[filterName] = event.target.value.trim().toLocaleLowerCase();
+    renderInventory();
+  }
+  document.getElementById("clearInventoryFilters").addEventListener("click", () => {
+    inventoryQuery = "";
+    Object.keys(inventoryFilters).forEach((key) => { inventoryFilters[key] = ""; });
+    document.getElementById("inventorySearch").value = "";
+    document.querySelectorAll("#publishedModule .inventory-filters input, #publishedModule .inventory-filters select").forEach((control) => { control.value = ""; });
+    renderInventory();
+  });
   function safe(text = "") {
     const node = document.createElement("span");
     node.textContent = text;
@@ -349,7 +432,8 @@
       return;
     }
     notice("Pieza eliminada.");
-    await loadData();
+    products = products.filter((product) => product.id !== button.dataset.delete);
+    renderInventory();
   });
   const editDialog = document.getElementById("editProductDialog");
   function openEditProduct(product) {
@@ -387,16 +471,17 @@
     if (originalPrice !== null && originalPrice <= price) originalPrice = null;
     button.disabled = true; button.textContent = "GUARDANDO...";
     try {
-      const { error } = await client.from("products").update({
+      const { data: updatedProduct, error } = await client.from("products").update({
         name: document.getElementById("editName").value.trim(), price, original_price: originalPrice,
         category: document.getElementById("editCategory").value, size: document.getElementById("editSize").value.trim() || null,
         ...measurements.values(document.getElementById("editMeasurements")),
         condition: document.getElementById("editCondition").value.trim() || null, description: document.getElementById("editDescription").value.trim() || null,
         updated_at: new Date().toISOString()
-      }).eq("id", product.id);
+      }).eq("id", product.id).select().single();
       if (error) { notice(error.message, "error"); return; }
+      products = products.map((item) => item.id === product.id ? updatedProduct : item);
+      renderInventory();
       editDialog.close(); notice("Prenda actualizada.");
-      await loadData();
     } catch (error) {
       console.error("Error actualizando la prenda:", error);
       notice(error.message || "No se pudo actualizar la prenda.", "error");
@@ -407,14 +492,20 @@
   inventory.addEventListener("change", async (event) => {
     const select = event.target.closest("[data-availability]");
     if (!select) return;
+    const product = products.find((item) => item.id === select.dataset.availability);
+    const previousValue = product?.availability || select.value;
     select.disabled = true;
     const { error } = await client
       .from("products")
       .update({ availability: select.value, updated_at: new Date().toISOString() })
       .eq("id", select.dataset.availability);
     if (error) notice(error.message, "error");
-    else notice("Estado de la prenda actualizado.");
-    await loadData();
+    else {
+      if (product) product.availability = select.value;
+      notice("Estado de la prenda actualizado.");
+    }
+    if (error) select.value = previousValue;
+    select.disabled = false;
   });
   setup();
 })();
