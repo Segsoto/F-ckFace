@@ -12,7 +12,8 @@
     const legacy = clothing.filter(([key]) => !selected.some(([field]) => field === key) && original[key] != null);
     for (const [key, title] of [...selected, ...legacy]) {
       const label = document.createElement("label");
-      label.textContent = `${title}${legacy.some(([field]) => field === key) ? " · MEDIDA ANTERIOR" : ""} (CM)`;
+      const editorTitle = key === "inseam_cm" ? "ANCHO DE ENTREPIERNA" : title;
+      label.textContent = `${editorTitle}${legacy.some(([field]) => field === key) ? " · MEDIDA ANTERIOR" : ""} (CM)`;
       const input = document.createElement("input");
       Object.assign(input, { name: key, type: "number", min: "0", max: "9999.99", step: "0.01", value: product[key] ?? "" });
       label.append(input);
