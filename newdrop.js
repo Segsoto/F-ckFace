@@ -153,6 +153,7 @@
     const mainImage = document.getElementById("dialogImage");
 
     [ ["dialogCategory", categories[product.category]?.[0] || product.category || "PIEZA"], ["dialogName", product.name], ["dialogDescription", product.description || "Consultá por esta pieza para más detalles."], ["dialogSize", product.size || "—"], ["dialogCondition", product.condition || "—"], ["dialogLength", product.length_cm ? `${product.length_cm} cm` : "—"], ["dialogChestWidth", product.chest_width_cm ? `${product.chest_width_cm} cm` : "—"] ].forEach(([id, value]) => { document.getElementById(id).textContent = value; });
+    window.ProductMeasurements.display(product);
     document.getElementById("dialogPrice").innerHTML = priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "");
 
     mainImage.src = images[0];

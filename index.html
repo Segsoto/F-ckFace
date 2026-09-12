@@ -47,6 +47,12 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div id="pageLoader" class="page-loader" role="status" aria-live="polite" hidden>
+      <span class="page-loader-brand">F-CK FACE<span>®</span></span>
+      <span class="page-loader-track" aria-hidden="true"></span>
+      <span class="page-loader-caption">PREPARANDO LAS PIEZAS...</span>
+    </div>
+    <script src="page-loader.js"></script>
     <div class="site-banner">
       <span>F-CK FACE / COSTA RICA</span><span>PIEZAS ÚNICAS · STREETWEAR</span
       ><span>CONSULTÁ POR WHATSAPP</span><span>F-CK FACE / COSTA RICA</span
@@ -270,6 +276,7 @@
     </dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="measurements.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

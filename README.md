@@ -227,3 +227,9 @@ Antes de publicar cambios, comprobar que:
 | Error subiendo fotos | Bucket o políticas de Storage faltantes. | Ejecutar el bloque Storage de `supabase-schema.sql`. |
 | `function gen_salt(unknown) does not exist` o `404` en `/rpc/save_active_drop` | La versión anterior del RPC no encuentra `pgcrypto` o PostgREST conserva su caché. | Ejecutar nuevamente, completo, `supabase-schema.sql` en el SQL Editor del proyecto configurado. El script actualiza la función y recarga el caché. |
 | Las piezas no pasan a Shop All | La fecha aún no llegó o nadie cargó la web tras el lanzamiento. | Abrir la tienda/panel o configurar Supabase Cron para ejecución cada minuto. |
+
+## Medidas por categoría
+
+El alta y la edición usan `measurements.js`: pantalones tienen largo total, ancho de cintura en plano y entrepierna; bolsos/mochilas tienen alto, ancho y fondo; las demás categorías conservan largo y ancho de pecho. Todas las medidas son opcionales y se expresan en centímetros. Bolsos conserva el identificador `mochilas` para mantener los filtros y productos existentes.
+
+Para otra instalación existente, ejecutar `supabase/migrations/20260912033744_category_measurements.sql` antes de publicar el frontend. Solo añade columnas; no actualiza ni elimina piezas. Las medidas históricas conservan su significado y siguen disponibles al editar y consultar la pieza. No se convierten medidas de pecho en cintura automáticamente.

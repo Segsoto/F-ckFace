@@ -9,6 +9,27 @@
     message = document.getElementById("message"),
     loginMessage = document.getElementById("loginMessage"),
     inventory = document.getElementById("inventoryList");
+  const measurements = window.ProductMeasurements;
+  function bindMeasurements(formId, containerId, categorySelector) {
+    const form = document.getElementById(formId);
+    const container = document.getElementById(containerId);
+    const category = form.querySelector(categorySelector);
+    let draft = {};
+    let original = {};
+    category.addEventListener("change", () => {
+      Object.assign(draft, measurements.values(container));
+      measurements.editor(container, category.value, draft, original);
+    });
+    function reset(product = {}) {
+      draft = { ...product };
+      original = product;
+      measurements.editor(container, category.value, draft, original);
+    }
+    reset();
+    return reset;
+  }
+  const resetNewMeasurements = bindMeasurements("productForm", "productMeasurements", '[name="category"]');
+  const resetEditMeasurements = bindMeasurements("editProductForm", "editMeasurements", '#editCategory');
   let activeDrop = null, products = [], removeDiscountRequested = false;
   function notice(text, type = "success", target = message) {
     if (!target) return;
@@ -176,8 +197,7 @@
           size: data.get("size") || null,
           condition: data.get("condition") || null,
           description: data.get("description") || null,
-          length_cm: numberOrNull(data.get("length_cm")),
-          chest_width_cm: numberOrNull(data.get("chest_width_cm")),
+          ...measurements.values(document.getElementById("productMeasurements")),
           image_urls,
           status: "new_drop",
           availability: "available",
@@ -185,6 +205,7 @@
         });
         if (error) throw error;
         form.reset();
+        resetNewMeasurements();
         document.getElementById("fileCount").textContent =
           "Seleccionar archivos";
         notice("Pieza agregada a New Drop.");
@@ -340,8 +361,7 @@
     document.getElementById("editPrice").value = product.price;
     document.getElementById("editCategory").value = product.category;
     document.getElementById("editSize").value = product.size || "";
-    document.getElementById("editLength").value = product.length_cm || "";
-    document.getElementById("editChestWidth").value = product.chest_width_cm || "";
+    resetEditMeasurements(product);
     document.getElementById("editCondition").value = product.condition || "";
     document.getElementById("editDescription").value = product.description || "";
     document.getElementById("priceHelp").textContent = product.original_price ? `Precio anterior actual: ₡${Number(product.original_price).toLocaleString("es-CR")}. Si el precio vuelve a ser igual o mayor, la rebaja se quitará.` : "Al bajar el precio, se conservará automáticamente el precio anterior para mostrar la rebaja.";
@@ -370,7 +390,7 @@
       const { error } = await client.from("products").update({
         name: document.getElementById("editName").value.trim(), price, original_price: originalPrice,
         category: document.getElementById("editCategory").value, size: document.getElementById("editSize").value.trim() || null,
-        length_cm: numberOrNull(document.getElementById("editLength").value), chest_width_cm: numberOrNull(document.getElementById("editChestWidth").value),
+        ...measurements.values(document.getElementById("editMeasurements")),
         condition: document.getElementById("editCondition").value.trim() || null, description: document.getElementById("editDescription").value.trim() || null,
         updated_at: new Date().toISOString()
       }).eq("id", product.id);

@@ -113,6 +113,7 @@
     document.getElementById("dialogCondition").textContent = product.condition || "—";
     document.getElementById("dialogLength").textContent = product.length_cm ? `${product.length_cm} cm` : "—";
     document.getElementById("dialogChestWidth").textContent = product.chest_width_cm ? `${product.chest_width_cm} cm` : "—";
+    window.ProductMeasurements.display(product);
     const unavailable = product.availability !== "available";
     const notice = document.getElementById("availabilityNotice");
     notice.hidden = !unavailable;
@@ -151,5 +152,10 @@
     if (error) { console.error(error); productGrid.innerHTML = '<p class="empty-state">NO SE PUDO CARGAR EL CATÁLOGO.</p>'; return; }
     products = catalog || []; updatePublicCountdown(drops?.[0]); render();
   }
-  load();
+  load()
+    .catch(error => {
+      console.error("No se pudo cargar el catálogo:", error);
+      productGrid.innerHTML = '<p class="empty-state">NO SE PUDO CARGAR EL CATÁLOGO. INTENTÁ RECARGAR LA PÁGINA.</p>';
+    })
+    .finally(() => window.StorePageLoader?.ready());
 })();
