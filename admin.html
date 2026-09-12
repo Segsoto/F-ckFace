@@ -96,7 +96,7 @@
           </section>
           <section class="panel product-panel admin-module" id="publishModule" data-admin-module="publishModule" role="tabpanel">
             <p class="eyebrow">NUEVA PIEZA</p>
-            <h2>ADD TO NEW DROP</h2>
+            <h2>PUBLICAR PRENDA</h2>
             <form id="productForm">
               <div class="two-cols">
                 <label
@@ -128,6 +128,10 @@
                   >TALLA<input name="size" placeholder="M / 32 / Única"
                 /></label>
               </div>
+              <label>DESTINO DE PUBLICACIÓN<select name="publication_target" id="publicationTarget">
+                <option value="new_drop">NEW DROP</option>
+                <option value="published">INICIO / TIENDA PÚBLICA</option>
+              </select></label>
               <div class="two-cols" id="productMeasurements"></div>
               <label
                 >ESTADO<input

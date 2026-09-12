@@ -215,7 +215,9 @@
       button.textContent = "SUBIENDO...";
       try {
         const data = new FormData(form);
-        if (!activeDrop?.id)
+        const publicationTarget = data.get("publication_target");
+        const isNewDrop = publicationTarget === "new_drop";
+        if (isNewDrop && !activeDrop?.id)
           throw new Error("Primero configurá el drop antes de cargar prendas.");
         const image_urls = await uploadImages(
           document.getElementById("images").files,
@@ -229,9 +231,9 @@
           description: data.get("description") || null,
           ...measurements.values(document.getElementById("productMeasurements")),
           image_urls,
-          status: "new_drop",
+          status: isNewDrop ? "new_drop" : "published",
           availability: "available",
-          drop_id: activeDrop.id,
+          drop_id: isNewDrop ? activeDrop.id : null,
         }).select().single();
         if (error) throw error;
         form.reset();
@@ -240,7 +242,7 @@
           "Seleccionar archivos";
         products.unshift(insertedProduct);
         renderInventory();
-        notice("Pieza agregada a New Drop.");
+        notice(isNewDrop ? "Pieza agregada a New Drop." : "Pieza publicada en la tienda pública.");
       } catch (error) {
         console.error(error);
         notice(error.message || "No se pudo agregar la pieza.", "error");
