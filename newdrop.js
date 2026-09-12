@@ -62,11 +62,12 @@
   function card(product) {
     const firstImage = normalizeImages(product)[0];
     const unavailable = product.availability !== "available" ? `<span class="product-availability ${escapeHtml(product.availability)}">${statusLabel(product.availability)}</span>` : "";
-    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}"><span class="product-label">${escapeHtml(categories[product.category]?.[0] || product.category || "PIEZA")}</span>${unavailable}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
+    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async"><span class="product-label">${escapeHtml(categories[product.category]?.[0] || product.category || "PIEZA")}</span>${unavailable}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
   }
   function renderProducts() {
     const visible = selectedCategory ? products.filter((product) => product.category === selectedCategory) : products;
     grid.innerHTML = visible.map(card).join("") || `<p class="empty-state">${selectedCategory ? `NO HAY PIEZAS EN ${escapeHtml(categories[selectedCategory]?.[0])} TODAVÍA.` : "TODAVÍA NO HAY PIEZAS CARGADAS."}</p>`;
+    window.ProductImages.prepare(grid);
     document.querySelectorAll("#exclusiveCategorySlider .category-card").forEach((item) => item.classList.toggle("active", item.dataset.category === selectedCategory));
   }
   function renderCategories() {
@@ -126,9 +127,16 @@
     if (!password || button.disabled) return;
     button.disabled = true;
     document.getElementById("accessMessage").textContent = "";
+    window.StorePageLoader?.start();
     try {
-      await unlock(password);
+      const granted = await unlock(password);
+      if (granted) await window.StorePageLoader?.ready();
+      else window.StorePageLoader?.finish();
+    } catch (error) {
+      console.error("No se pudo acceder al drop:", error);
+      document.getElementById("accessMessage").textContent = "No se pudo conectar. Intentá nuevamente.";
     } finally {
+      window.StorePageLoader?.finish();
       button.disabled = false;
     }
   });
@@ -156,7 +164,7 @@
     window.ProductMeasurements.display(product);
     document.getElementById("dialogPrice").innerHTML = priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "");
 
-    mainImage.src = images[0];
+    window.ProductImages.setSource(mainImage, images[0]);
     mainImage.alt = product.name;
     gallery.innerHTML = "";
 
@@ -165,12 +173,13 @@
       thumb.type = "button";
       thumb.className = `dialog-gallery-item ${index === 0 ? "active" : ""}`;
       thumb.setAttribute("aria-label", `Ver imagen ${index + 1}`);
-      thumb.innerHTML = `<img src="${src}" alt="${escapeHtml(product.name)} ${index + 1}" loading="lazy" />`;
+      thumb.innerHTML = `<img src="${src}" alt="${escapeHtml(product.name)} ${index + 1}" loading="lazy" decoding="async" />`;
       thumb.addEventListener("click", () => {
-        mainImage.src = src;
+        window.ProductImages.setSource(mainImage, src);
         gallery.querySelectorAll(".dialog-gallery-item").forEach((item) => item.classList.toggle("active", item === thumb));
       });
       gallery.appendChild(thumb);
+      window.ProductImages.prepare(gallery);
     });
 
     gallery.style.display = images.length > 1 ? "flex" : "none";
@@ -181,5 +190,10 @@
   document.getElementById("exclusiveCategorySlider").addEventListener("click", (event) => { const category = event.target.closest(".category-card")?.dataset.category; if (!category) return; selectedCategory = category; renderProducts(); grid.scrollIntoView({ behavior: "smooth", block: "start" }); });
   whatsappButton.addEventListener("click", (event) => { if (whatsappButton.dataset.availability !== "available") { event.preventDefault(); alert("Esta prenda está apartada o en proceso de compra. Esperá a que se libere de nuevo para poder intentar comprarla."); } });
   document.querySelector(".dialog-close").addEventListener("click", () => dialog.close()); dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
-  load();
+  load()
+    .catch(error => {
+      console.error("No se pudo cargar el drop:", error);
+      grid.innerHTML = '<p class="empty-state">NO SE PUDO CARGAR EL DROP. INTENTÁ RECARGAR LA PÁGINA.</p>';
+    })
+    .finally(() => window.StorePageLoader?.ready());
 })();

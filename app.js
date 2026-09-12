@@ -20,11 +20,12 @@
   function card(product) {
     const image = product.image_urls?.[0] || "img/logo1.jpg";
     const status = product.availability !== "available" ? `<span class="product-availability ${escapeHtml(product.availability)}">${statusLabel(product.availability)}</span>` : "";
-    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy"><span class="product-label">${escapeHtml(categoryNames[product.category] || product.category || "PIEZA")}</span>${status}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
+    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async"><span class="product-label">${escapeHtml(categoryNames[product.category] || product.category || "PIEZA")}</span>${status}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
   }
   function render() {
     const visibleProducts = selectedCategory ? products.filter((product) => product.category === selectedCategory) : products;
     productGrid.innerHTML = visibleProducts.map(card).join("") || `<p class="empty-state">${selectedCategory ? `NO HAY PIEZAS EN ${escapeHtml(categoryNames[selectedCategory])} TODAVÍA.` : "NO HAY PIEZAS DISPONIBLES TODAVÍA."}</p>`;
+    window.ProductImages.prepare(productGrid);
     document.getElementById("catalogReset").hidden = !selectedCategory;
     document.querySelectorAll(".category-card").forEach((item) => item.classList.toggle("active", item.dataset.category === selectedCategory));
   }
@@ -88,7 +89,7 @@
       : [product.image_urls?.[0] || "img/logo1.jpg"];
     const mainImage = document.getElementById("dialogImage");
 
-    mainImage.src = images[0];
+    window.ProductImages.setSource(mainImage, images[0]);
     mainImage.alt = product.name;
     gallery.innerHTML = "";
 
@@ -97,12 +98,13 @@
       thumb.type = "button";
       thumb.className = `dialog-gallery-item ${index === 0 ? "active" : ""}`;
       thumb.setAttribute("aria-label", `Ver imagen ${index + 1}`);
-      thumb.innerHTML = `<img src="${src}" alt="${escapeHtml(product.name)} ${index + 1}" loading="lazy" />`;
+      thumb.innerHTML = `<img src="${src}" alt="${escapeHtml(product.name)} ${index + 1}" loading="lazy" decoding="async" />`;
       thumb.addEventListener("click", () => {
-        mainImage.src = src;
+        window.ProductImages.setSource(mainImage, src);
         gallery.querySelectorAll(".dialog-gallery-item").forEach((item) => item.classList.toggle("active", item === thumb));
       });
       gallery.appendChild(thumb);
+      window.ProductImages.prepare(gallery);
     });
 
     document.getElementById("dialogCategory").textContent = categoryNames[product.category] || product.category || "PIEZA";

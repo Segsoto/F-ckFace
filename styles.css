@@ -405,6 +405,24 @@ h2 em {
 .product-card:hover .product-image img {
   transform: scale(1.045);
 }
+.dialog-image, .dialog-gallery-item { position: relative; }
+.photo-loading, .photo-error { background: #e5e2dc; }
+.photo-loading > img, .photo-error > img { opacity: 0; }
+.photo-loading::after, .photo-error::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  color: #595650;
+  font: 10px var(--mono);
+  letter-spacing: .08em;
+  text-align: center;
+  pointer-events: none;
+}
+.photo-loading::after { content: "CARGANDO FOTO…"; }
+.photo-error::after { content: "FOTO NO DISPONIBLE"; }
+.dialog-gallery-item.photo-loading::after { content: "…"; font-size: 22px; }
+.dialog-gallery-item.photo-error::after { content: "×"; font-size: 22px; }
 .product-label {
   position: absolute;
   top: 9px;
