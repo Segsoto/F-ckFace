@@ -862,3 +862,18 @@ footer a {
     display: none;
   }
 }
+.drop-category-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.drop-category-filter { padding: 12px 16px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.drop-category-filter.active { background: #e52325; color: #fff; border-color: #e52325; }
+.drop-category-filter:focus-visible { outline: 3px solid #e52325; outline-offset: 3px; }
+#exclusiveCategories { position: sticky; top: 0; z-index: 5; background: #f3f0e8; padding: 16px 0; }
+#exclusiveResultCount { margin: 12px 0 0; font-size: 12px; }
+.drop-search-controls { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; margin-top: 16px; }
+.drop-search-controls label { display: grid; gap: 6px; min-width: 0; font-size: 12px; }
+.drop-search-controls input, .drop-search-controls select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #777; border-radius: 0; background: #fff; color: #161616; font: inherit; font-size: 16px; }
+.drop-search-controls input:focus-visible, .drop-search-controls select:focus-visible { outline: 3px solid #e52325; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .drop-search-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .drop-search-controls label:first-child { grid-column: 1 / -1; }
+  #exclusiveCategories { position: static; }
+}

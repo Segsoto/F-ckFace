@@ -19,19 +19,23 @@ La tienda está pensada para vender mediante *drops*:
 
 ## Estructura del proyecto
 
+El JavaScript se separa en `assets/js/pages/` y `assets/js/shared/`; los estilos están en `assets/css/`. Las páginas conservan sus rutas de acceso. Las pautas de mantenimiento y verificación están en [docs/calidad.md](docs/calidad.md). Ejecutar `npm test` con Node.js 22 o superior para revisar rutas y regresiones de New Drop, sin instalar dependencias.
+
+En New Drop, al ingresar con la contraseña, los filtros muestran las categorías que tienen prendas y su cantidad. **Todas** recupera el catálogo completo. El contador mantiene abierto el catálogo durante el acceso autorizado.
+
 | Archivo | Responsabilidad |
 | --- | --- |
 | `index.html` | Tienda pública y modal de detalles de producto. |
 | `NewDrop.html` | Acceso exclusivo con contador y contraseña para la comunidad. |
-| `styles.css` | Diseño streetwear de la tienda. |
-| `app.js` | Lectura del catálogo público, modal, WhatsApp y contador de apertura pública. |
-| `newdrop.js` | Validación segura del acceso exclusivo, contador y catálogo del drop. |
+| `assets/css/styles.css` | Diseño streetwear de la tienda. |
+| `assets/js/pages/app.js` | Lectura del catálogo público, modal, WhatsApp y contador de apertura pública. |
+| `assets/js/pages/newdrop.js` | Validación segura del acceso exclusivo, contador y catálogo del drop. |
 | `admin.html` | Panel de administración. |
-| `admin.css` | Estilos del panel. |
-| `admin.js` | Inicio de sesión, carga de imágenes, alta/eliminación de piezas y programación de drops. |
+| `assets/css/admin.css` | Estilos del panel. |
+| `assets/js/pages/admin.js` | Inicio de sesión, carga de imágenes, alta/eliminación de piezas y programación de drops. |
 | `config.js` | URL de Supabase, clave pública y número de WhatsApp. |
 | `supabase-schema.sql` | Tablas, función automática, bucket de fotos y políticas RLS. |
-| `404.html` / `404.css` | Página personalizada para rutas inexistentes. |
+| `404.html` / `assets/css/404.css` | Página personalizada para rutas inexistentes. |
 | `robots.txt` | Permite rastrear la tienda y bloquea archivos internos. |
 | `img/logo1.jpg` | Recurso visual actual de la marca. |
 
@@ -103,6 +107,14 @@ Abrir `admin.html` en el sitio publicado.
 Solo hay un drop activo. Una vez que se abre al público, se puede crear el siguiente.
 
 ### Editar un drop y consultar su contraseña
+
+### Revisar antes de la apertura
+
+Iniciá sesión con tu correo y contraseña de administrador en `admin.html` y elegí **VISTA PREVIA DEL DROP**. Se abre `NewDrop.html?preview=admin` en otra pestaña del mismo navegador y dominio. Permite revisar categorías, fotos, precios y detalles antes de la apertura exclusiva. Si no hay sesión autorizada, pide entrar al panel.
+
+La vista previa consulta únicamente las prendas `new_drop` del drop activo, con los permisos de administrador existentes. No ejecuta la publicación automática ni cambia productos o fechas. La apertura habitual del sitio y del panel conserva su comportamiento programado. No requiere migración SQL.
+
+### Cambiar datos del drop
 
 El drop activo se carga automáticamente en el formulario. Podés cambiar su nombre,
 fechas y horas de apertura, contraseña y nota con **Guardar cambios**. Dejá la
@@ -215,7 +227,7 @@ Antes de publicar cambios, comprobar que:
 - Configurar límites de intentos y MFA en **Authentication → Settings**. La contraseña del New Drop no sustituye la autenticación del panel.
 - Las fotos eliminadas desde el inventario actualmente eliminan el registro de la prenda, pero no borran automáticamente sus archivos del bucket. Es una mejora pendiente para evitar fotos sin uso.
 - El botón **Editar** del inventario permite corregir los datos de cualquier pieza publicada o de New Drop. Al reducir el precio, guarda el importe anterior y calcula automáticamente la rebaja; **Quitar descuento** vuelve a mostrar un único precio.
-- Si se agregan categorías, cambiar las opciones del `<select>` en `admin.html`, las tarjetas y el objeto `categoryNames` en `app.js`/`index.html`, y la restricción `check` de `products.category` en la base de datos mediante una migración.
+- Si se agregan categorías, cambiar las opciones del `<select>` en `admin.html`, las tarjetas y el objeto `categoryNames` en `assets/js/pages/app.js`/`index.html`, y la restricción `check` de `products.category` en la base de datos mediante una migración.
 
 ## Diagnóstico rápido
 
@@ -230,6 +242,6 @@ Antes de publicar cambios, comprobar que:
 
 ## Medidas por categoría
 
-El alta y la edición usan `measurements.js`: pantalones tienen largo total, ancho de cintura en plano y entrepierna; bolsos/mochilas tienen alto, ancho y fondo; las demás categorías conservan largo y ancho de pecho. Todas las medidas son opcionales y se expresan en centímetros. Bolsos conserva el identificador `mochilas` para mantener los filtros y productos existentes.
+El alta y la edición usan `assets/js/shared/measurements.js`: pantalones tienen largo total, ancho de cintura en plano y entrepierna; bolsos/mochilas tienen alto, ancho y fondo; las demás categorías conservan largo y ancho de pecho. Todas las medidas son opcionales y se expresan en centímetros. Bolsos conserva el identificador `mochilas` para mantener los filtros y productos existentes.
 
 Para otra instalación existente, ejecutar `supabase/migrations/20260912033744_category_measurements.sql` antes de publicar el frontend. Solo añade columnas; no actualiza ni elimina piezas. Las medidas históricas conservan su significado y siguen disponibles al editar y consultar la pieza. No se convierten medidas de pecho en cintura automáticamente.

@@ -12,8 +12,8 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css" />
-    <link rel="stylesheet" href="password-toggle.css" />
+    <link rel="stylesheet" href="assets/css/admin.css" />
+    <link rel="stylesheet" href="assets/css/password-toggle.css" />
   </head>
   <body>
     <header>
@@ -92,6 +92,7 @@
               <button type="button" id="deactivateDropButton" hidden>DESACTIVAR DROP</button>
             </form>
             <div id="activeDrop" class="active-drop">SIN DROP PROGRAMADO</div>
+            <p><a id="previewDropLink" href="NewDrop.html?preview=admin" target="_blank" rel="noopener" hidden>VISTA PREVIA DEL DROP ↗</a></p>
             <section id="savedPasswordSection" hidden><label>CONTRASEÑA GUARDADA<input id="savedDropPassword" type="password" readonly autocomplete="off" /></label><p class="subtle" id="savedPasswordHelp"></p></section>
           </section>
           <section class="panel product-panel admin-module" id="publishModule" data-admin-module="publishModule" role="tabpanel">
@@ -205,8 +206,8 @@
     </dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="password-toggle.js"></script>
-    <script src="measurements.js"></script>
-    <script src="admin.js"></script>
+    <script src="assets/js/shared/password-toggle.js"></script>
+    <script src="assets/js/shared/measurements.js"></script>
+    <script src="assets/js/pages/admin.js"></script>
   </body>
 </html>

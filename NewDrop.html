@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="password-toggle.css" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="assets/css/password-toggle.css" />
   </head>
   <body class="new-drop-page">
     <div id="pageLoader" class="page-loader" role="status" aria-live="polite" hidden>
@@ -21,7 +21,7 @@
       <span class="page-loader-track" aria-hidden="true"></span>
       <span class="page-loader-caption">PREPARANDO LAS PIEZAS...</span>
     </div>
-    <script src="page-loader.js"></script>
+    <script src="assets/js/shared/page-loader.js"></script>
     <div class="site-banner"><span>ACCESO ANTICIPADO / COMUNIDAD F-CK FACE</span><span>PIEZAS ÚNICAS · STREETWEAR</span><span>ACCESO ANTICIPADO / COMUNIDAD F-CK FACE</span></div>
     <header class="site-header">
       <a class="wordmark" href="index.html" aria-label="F-ck Face, inicio"
@@ -39,6 +39,10 @@
         <p class="countdown-state" id="countdownState">PROGRAMANDO EL PRÓXIMO DROP</p>
       </section>
       <section class="exclusive-content">
+        <aside id="previewNotice" class="access-granted" hidden>
+          <p>VISTA PREVIA PRIVADA · Esta revisión no publica prendas ni modifica las fechas del drop.</p>
+          <a href="admin.html">VOLVER AL PANEL / INICIAR SESIÓN ↗</a>
+        </aside>
         <form id="accessForm" class="access-form" hidden>
           <label>CONTRASEÑA DE LA COMUNIDAD<input id="accessPassword" type="password" autocomplete="current-password" required /></label>
           <button type="submit" class="button button-red">VER PIEZAS ↗</button>
@@ -47,7 +51,13 @@
         <div id="accessGranted" class="access-granted" hidden>ACCESO EXCLUSIVO ACTIVO</div>
         <section id="exclusiveCategories" class="category-section" hidden aria-labelledby="exclusiveCategoryTitle">
           <div class="category-heading"><p class="overline">EXPLORÁ EL DROP</p><h3 id="exclusiveCategoryTitle">POR <em>CATEGORÍA</em></h3></div>
-          <div class="category-slider" id="exclusiveCategorySlider" aria-label="Categorías del drop exclusivo"></div>
+          <div class="drop-category-filters" id="exclusiveCategorySlider" role="group" aria-label="Categorías del drop exclusivo"></div>
+          <div class="drop-search-controls">
+            <label>BUSCAR PRENDAS<input id="dropSearch" type="search" placeholder="Nombre, categoría, talla..." autocomplete="off" aria-controls="exclusiveProductGrid" /></label>
+            <label>TALLA<select id="dropSizeFilter" aria-controls="exclusiveProductGrid"><option value="">TODAS LAS TALLAS</option></select></label>
+            <button id="clearDropFilters" class="drop-category-filter" type="button">LIMPIAR FILTROS</button>
+          </div>
+          <p id="exclusiveResultCount" role="status" aria-live="polite"></p>
         </section>
         <div class="product-grid" id="exclusiveProductGrid"></div>
         <section id="closedDrop" class="closed-drop" hidden>
@@ -59,7 +69,7 @@
         </section>
       </section>
     </main>
-    <dialog class="product-dialog" id="productDialog"><button class="dialog-close" aria-label="Cerrar">×</button><div class="dialog-layout"><div class="dialog-image-wrap"><div class="dialog-image"><img id="dialogImage" alt="" /></div><div class="dialog-gallery" id="dialogGallery" aria-label="Previsualización de imágenes"></div></div><div class="dialog-info"><p class="overline" id="dialogCategory"></p><h2 id="dialogName"></h2><p class="dialog-price" id="dialogPrice"></p><p id="dialogDescription"></p><dl><div><dt>TALLA</dt><dd id="dialogSize"></dd></div><div><dt>ESTADO</dt><dd id="dialogCondition"></dd></div><div><dt>LARGO</dt><dd id="dialogLength"></dd></div><div><dt>ANCHO DE PECHO</dt><dd id="dialogChestWidth"></dd></div><div><dt>MEDIDAS TOMADAS EN PLANO; PUEDEN VARIAR LEVEMENTE.</dt></div></dl><p id="availabilityNotice" class="availability-notice" hidden></p><a id="dialogWhatsapp" class="button button-red" target="_blank" rel="noopener">CONSULTAR POR WHATSAPP ↗</a></div></div></dialog>
+    <dialog class="product-dialog" id="productDialog"><button class="dialog-close" aria-label="Cerrar">×</button><div class="dialog-layout"><div class="dialog-image-wrap"><div class="dialog-image"><img id="dialogImage" alt="" /></div><div class="dialog-gallery" id="dialogGallery" aria-label="Previsualización de imágenes"></div></div><div class="dialog-info"><p class="overline" id="dialogCategory"></p><h2 id="dialogName"></h2><p class="dialog-price" id="dialogPrice"></p><p id="dialogDescription"></p><dl><div><dt>TALLA</dt><dd id="dialogSize"></dd></div><div><dt>ESTADO</dt><dd id="dialogCondition"></dd></div><div><dt>LARGO</dt><dd id="dialogLength"></dd></div><div><dt>ANCHO DE PECHO</dt><dd id="dialogChestWidth"></dd></div><div><dt>ANCHO DE MANGA</dt><dd id="dialogSleeveWidth"></dd></div><div><dt>MEDIDAS TOMADAS EN PLANO; PUEDEN VARIAR LEVEMENTE.</dt></div></dl><p id="availabilityNotice" class="availability-notice" hidden></p><a id="dialogWhatsapp" class="button button-red" target="_blank" rel="noopener">CONSULTAR POR WHATSAPP ↗</a></div></div></dialog>
     <a
       class="floating-whatsapp"
       data-whatsapp="general"
@@ -72,9 +82,10 @@
     </a>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="password-toggle.js"></script>
-    <script src="measurements.js"></script>
-    <script src="product-images.js"></script>
-    <script src="newdrop.js"></script>
+    <script src="assets/js/shared/password-toggle.js"></script>
+    <script src="assets/js/shared/measurements.js"></script>
+    <script src="assets/js/shared/product-images.js"></script>
+    <script src="assets/js/shared/drop-preview.js"></script>
+    <script src="assets/js/pages/newdrop.js"></script>
   </body>
 </html>

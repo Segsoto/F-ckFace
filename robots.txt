@@ -1,8 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
-Disallow: /admin.js
-Disallow: /admin.css
+Disallow: /assets/js/pages/admin.js
+Disallow: /assets/css/admin.css
 Disallow: /config.js
 Disallow: /supabase-schema.sql
 Disallow: /404.html

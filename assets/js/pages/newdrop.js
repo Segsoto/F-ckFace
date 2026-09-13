@@ -7,7 +7,10 @@
   const closed = document.getElementById("closedDrop");
   const dialog = document.getElementById("productDialog");
   const whatsappButton = document.getElementById("dialogWhatsapp");
+  const previewMode = new URLSearchParams(window.location?.search || "").get("preview") === "admin";
   let products = [], dropTimer, activeDrop, selectedCategory = null, accessPassword = null;
+  let searchQuery = "", selectedSize = "";
+  const normalizeSearch = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("es");
   const categories = {
     jacket_damas: ["JACKET DAMAS", "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=900&q=80"],
     jacket_caballeros: ["JACKET CABALLEROS", "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=900&q=80"],
@@ -65,15 +68,51 @@
     return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async"><span class="product-label">${escapeHtml(categories[product.category]?.[0] || product.category || "PIEZA")}</span>${unavailable}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
   }
   function renderProducts() {
-    const visible = selectedCategory ? products.filter((product) => product.category === selectedCategory) : products;
-    grid.innerHTML = visible.map(card).join("") || `<p class="empty-state">${selectedCategory ? `NO HAY PIEZAS EN ${escapeHtml(categories[selectedCategory]?.[0])} TODAVÍA.` : "TODAVÍA NO HAY PIEZAS CARGADAS."}</p>`;
+    const terms = normalizeSearch(searchQuery).split(/\s+/).filter(Boolean);
+    const visible = products.filter(product => {
+      const text = normalizeSearch([product.name, product.description, product.size, product.category, categories[product.category]?.[0]].filter(Boolean).join(" "));
+      return (!selectedCategory || (product.category || "sin_categoria") === selectedCategory)
+        && (!selectedSize || normalizeSearch(product.size) === selectedSize)
+        && terms.every(term => text.includes(term));
+    });
+    grid.innerHTML = visible.map(card).join("") || `<p class="empty-state">${products.length ? "NO HAY PRENDAS QUE COINCIDAN. PROBÁ OTRA BÚSQUEDA O LIMPIÁ LOS FILTROS." : "TODAVÍA NO HAY PIEZAS CARGADAS."}</p>`;
     window.ProductImages.prepare(grid);
-    document.querySelectorAll("#exclusiveCategorySlider .category-card").forEach((item) => item.classList.toggle("active", item.dataset.category === selectedCategory));
+    document.querySelectorAll("#exclusiveCategorySlider button").forEach((item) => {
+      const active = item.dataset.category === (selectedCategory || "");
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-pressed", String(active));
+    });
+    document.getElementById("exclusiveResultCount").textContent = `${visible.length} ${visible.length === 1 ? "PRENDA" : "PRENDAS"}`;
   }
   function renderCategories() {
+    const sizeFilter = document.getElementById("dropSizeFilter");
+    sizeFilter.replaceChildren();
+    const sizes = [...new Set(products.map(product => normalizeSearch(product.size)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+    if (!sizes.includes(selectedSize)) selectedSize = "";
+    ["", ...sizes].forEach(size => {
+      const option = document.createElement("option");
+      option.value = size;
+      option.textContent = size ? size.toLocaleUpperCase("es") : "TODAS LAS TALLAS";
+      sizeFilter.append(option);
+    });
+    sizeFilter.value = selectedSize;
     const section = document.getElementById("exclusiveCategories");
     const slider = document.getElementById("exclusiveCategorySlider");
-    slider.innerHTML = Object.entries(categories).map(([key, [name, image]]) => `<button class="category-card" type="button" data-category="${key}"><img src="${image}" alt="${name}" /><span>${name.replace(" ", "<br />")}</span><small>VER PIEZAS →</small></button>`).join("");
+    slider.replaceChildren();
+    const counts = new Map();
+    products.forEach(product => {
+      const key = product.category || "sin_categoria";
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    [["", products.length], ...counts].forEach(([key, count]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "drop-category-filter";
+      button.dataset.category = key;
+      button.setAttribute("aria-controls", "exclusiveProductGrid");
+      button.textContent = `${key ? (categories[key]?.[0] || (key === "sin_categoria" ? "SIN CATEGORÍA" : key)) : "TODAS"} (${count})`;
+      slider.append(button);
+    });
     section.hidden = false;
   }
   async function unlock(password) {
@@ -97,7 +136,7 @@
       [["Days", 86400000], ["Hours", 3600000], ["Minutes", 60000], ["Seconds", 1000]].forEach(([key, unit]) => { const value = Math.floor(left / unit); set(key, String(value).padStart(2, "0")); left -= value * unit; });
       const exclusiveIsActive = now >= exclusive;
       state.textContent = exclusiveIsActive ? "ACCESO EXCLUSIVO ACTIVO" : "ACCESO EXCLUSIVO PRÓXIMAMENTE";
-      if (exclusiveIsActive && form.hidden) {
+      if (exclusiveIsActive && form.hidden && !accessPassword) {
         form.hidden = false;
         document.getElementById("exclusiveCategories").hidden = true;
       }
@@ -105,7 +144,32 @@
     tick(); dropTimer = setInterval(tick, 1000);
   }
   async function load() {
+    accessPassword = null;
+    products = [];
+    selectedCategory = null;
+    searchQuery = "";
+    selectedSize = "";
+    document.getElementById("dropSearch").value = "";
+    document.getElementById("dropSizeFilter").value = "";
+    document.getElementById("accessGranted").hidden = true;
     if (!client) { grid.innerHTML = '<p class="empty-state">CONFIGURÁ SUPABASE PARA CARGAR EL DROP.</p>'; return; }
+    if (previewMode) {
+      form.hidden = true;
+      closed.hidden = true;
+      document.getElementById("previewNotice").hidden = false;
+      document.getElementById("countdownState").textContent = "VISTA PREVIA PRIVADA · ADMINISTRADOR";
+      const preview = await window.DropPreview.load(client);
+      activeDrop = preview.drop;
+      products = preview.products;
+      document.getElementById("newDropDescription").textContent = activeDrop?.description || "Revisión del próximo drop.";
+      if (!activeDrop) {
+        grid.innerHTML = '<p class="empty-state">NO HAY UN DROP ACTIVO PARA REVISAR.</p>';
+        return;
+      }
+      renderCategories();
+      renderProducts();
+      return;
+    }
     await client.rpc("release_due_drops");
     const { data } = await client.rpc("get_current_drop");
     activeDrop = data?.[0]; updateCountdown(activeDrop);
@@ -141,9 +205,11 @@
     }
   });
   async function openProduct(product) {
-    if (!product || !client || !activeDrop?.id || !accessPassword) return;
+    if (!product || !client || !activeDrop?.id || (!accessPassword && !previewMode)) return;
     try {
-      const { data, error } = await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: accessPassword });
+      const { data, error } = previewMode
+        ? { data: await window.DropPreview.products(client, activeDrop.id) }
+        : await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: accessPassword });
       if (error) throw error;
       const freshProduct = data?.find((item) => item.id === product.id);
       if (!freshProduct) {
@@ -187,13 +253,34 @@
     whatsappButton.href = whatsappLink(product); whatsappButton.dataset.availability = product.availability || "available"; dialog.showModal();
   }
   document.addEventListener("click", (event) => { const cardEl = event.target.closest(".product-card"); if (cardEl) openProduct(products.find((p) => p.id === cardEl.dataset.id)); });
-  document.getElementById("exclusiveCategorySlider").addEventListener("click", (event) => { const category = event.target.closest(".category-card")?.dataset.category; if (!category) return; selectedCategory = category; renderProducts(); grid.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  document.getElementById("exclusiveCategorySlider").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-category]");
+    if (!button) return;
+    selectedCategory = button.dataset.category || null;
+    renderProducts();
+  });
+  document.getElementById("dropSearch").addEventListener("input", event => {
+    searchQuery = event.target.value;
+    renderProducts();
+  });
+  document.getElementById("dropSizeFilter").addEventListener("change", event => {
+    selectedSize = event.target.value;
+    renderProducts();
+  });
+  document.getElementById("clearDropFilters").addEventListener("click", () => {
+    searchQuery = "";
+    selectedSize = "";
+    selectedCategory = null;
+    document.getElementById("dropSearch").value = "";
+    document.getElementById("dropSizeFilter").value = "";
+    renderProducts();
+  });
   whatsappButton.addEventListener("click", (event) => { if (whatsappButton.dataset.availability !== "available") { event.preventDefault(); alert("Esta prenda está apartada o en proceso de compra. Esperá a que se libere de nuevo para poder intentar comprarla."); } });
   document.querySelector(".dialog-close").addEventListener("click", () => dialog.close()); dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
   load()
     .catch(error => {
       console.error("No se pudo cargar el drop:", error);
-      grid.innerHTML = '<p class="empty-state">NO SE PUDO CARGAR EL DROP. INTENTÁ RECARGAR LA PÁGINA.</p>';
+      grid.innerHTML = previewMode ? `<p class="empty-state">${escapeHtml(error.message)}</p>` : '<p class="empty-state">NO SE PUDO CARGAR EL DROP. INTENTÁ RECARGAR LA PÁGINA.</p>';
     })
     .finally(() => window.StorePageLoader?.ready());
 })();

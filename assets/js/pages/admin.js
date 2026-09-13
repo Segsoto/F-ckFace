@@ -327,6 +327,7 @@
     products = loadedProducts || [];
     const drop = dropsError ? activeDrop : drops?.[0] || null;
     activeDrop = drop;
+    document.getElementById("previewDropLink").hidden = !drop;
     document.getElementById("activeDrop").textContent = drop
       ? `${drop.name || "DROP"} · EXCLUSIVO: ${new Date(drop.exclusive_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })} · PÚBLICO: ${new Date(drop.public_at || drop.release_at).toLocaleString("es-CR", { dateStyle: "medium", timeStyle: "short" })}`
       : "SIN DROP PROGRAMADO";
