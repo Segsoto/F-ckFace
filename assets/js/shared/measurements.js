@@ -1,7 +1,7 @@
 (function () {
   const clothing = [["length_cm", "LARGO"], ["chest_width_cm", "ANCHO DE PECHO"]];
   const jackets = [...clothing, ["sleeve_width_cm", "ANCHO DE MANGA"]];
-  const pants = [["length_cm", "LARGO TOTAL"], ["waist_width_cm", "ANCHO DE CINTURA EN PLANO"], ["inseam_cm", "LARGO DE ENTREPIERNA"]];
+  const pants = [["length_cm", "LARGO TOTAL"], ["waist_width_cm", "ANCHO DE CINTURA EN PLANO"], ["inseam_cm", "ANCHO DE PIERNA"]];
   const bags = [["height_cm", "ALTO"], ["width_cm", "ANCHO"], ["depth_cm", "FONDO"]];
   function fields(category) {
     return category === "pantalones" ? pants : category === "mochilas" ? bags : ["jacket_damas", "jacket_caballeros"].includes(category) ? jackets : clothing;
