@@ -15,12 +15,14 @@ test('entry pages reference existing local scripts, styles and images', () => {
   }
 });
 
-for (const previewMode of [false, true]) test(`New Drop filters and access (admin preview: ${previewMode})`, async () => {
+for (const deepLink of [false, true]) for (const previewMode of [false, true]) test(`New Drop filters and access (admin preview: ${previewMode}, product link: ${deepLink})`, async () => {
   function element() {
     return {
       hidden: true, dataset: {}, children: [], style: {}, textContent: '', innerHTML: '',
       classList: { toggle() {} }, setAttribute(name, value) { this[name] = value; },
       append(child) { this.children.push(child); }, replaceChildren() { this.children = []; },
+      appendChild(child) { this.children.push(child); }, querySelectorAll() { return []; },
+      showModal() { this.open = true; },
       addEventListener(name, callback) { this[name] = callback; },
       querySelector() { return this.button ||= { disabled: false }; },
     };
@@ -46,14 +48,22 @@ for (const previewMode of [false, true]) test(`New Drop filters and access (admi
   } };
   vm.runInNewContext(fs.readFileSync('assets/js/pages/newdrop.js','utf8'), {
     document, console, URL, URLSearchParams, Intl, Date,
-    window: { location: { search: previewMode ? '?preview=admin' : '' }, DropPreview: { async load() { return { drop: { id: 'future' }, products }; } }, FUCK_FACE_CONFIG: { url: 'test', anonKey: 'test' }, supabase: { createClient: () => client }, ProductImages: { prepare() {} } },
+    window: { location: { href: 'https://store.example/newdrop.html?preview=admin&password=secret', search: `?${previewMode ? 'preview=admin&' : ''}${deepLink ? 'prenda=1' : ''}` }, DropPreview: { async load() { return { drop: { id: 'future' }, products }; }, async products() { return products; } }, FUCK_FACE_CONFIG: { url: 'test', anonKey: 'test' }, supabase: { createClient: () => client }, ProductImages: { prepare() {}, setSource() {} }, ProductMeasurements: { display() {} } },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     clearInterval() {}, setInterval(callback) { tick = callback; return 1; },
   });
   await new Promise(resolve => setImmediate(resolve));
   if (!previewMode) {
+    assert.ok(!get('productDialog').open, 'Exclusive product must stay closed before password entry');
     get('accessPassword').value = 'test';
     await get('accessForm').submit({ preventDefault() {} });
+  }
+  if (deepLink) {
+    assert.equal(get('productDialog').open, true);
+    assert.equal(get('dialogName').textContent, 'Pantalón');
+    const message = new URL(get('dialogWhatsapp').href).searchParams.get('text');
+    assert.ok(message.includes('https://store.example/newdrop.html?prenda=1'));
+    assert.ok(!message.includes('preview=') && !message.includes('password=') && !message.includes('Foto de la prenda:'));
   }
   assert.equal(get('exclusiveCategories').hidden, false);
   if (previewMode) assert.equal(tick, undefined, 'Preview must not schedule automatic release');

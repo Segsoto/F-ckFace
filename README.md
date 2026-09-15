@@ -196,6 +196,10 @@ whatsappNumber: '50689168397'
 En el modal de producto se genera una URL `wa.me` con un mensaje como:
 
 > Hola, quiero consultar por la pieza: [nombre] ([precio]). ¿Aún está disponible?
+>
+> Ver prenda: [URL de la tienda con ?prenda=ID]
+
+El catálogo público y New Drop incluyen un enlace al detalle de la prenda, con sus fotos y medidas. En New Drop se requiere el acceso exclusivo antes de abrir el detalle; si la prenda ya es pública, el enlace redirige al catálogo público. No se incluyen contraseñas ni parámetros de vista previa administrativa. Las consultas generales no incluyen enlace de producto. Los enlaces `wa.me` precargan texto, no archivos adjuntos; este cambio no genera una miniatura específica de la prenda en WhatsApp.
 
 Cambiar el número en `config.js` actualiza el botón principal, el de contacto y el de cada producto.
 

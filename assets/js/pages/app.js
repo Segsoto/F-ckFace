@@ -15,7 +15,15 @@
   function escapeHtml(value = "") { const el = document.createElement("div"); el.textContent = value; return el.innerHTML; }
   function statusLabel(availability) { return ({ reserved: "APARTADA", payment_pending: "EN PROCESO" })[availability] || "DISPONIBLE"; }
   function priceMarkup(product) { const discounted = Number(product.original_price) > Number(product.price); const percent = discounted ? Math.round((1 - Number(product.price) / Number(product.original_price)) * 100) : 0; return `${discounted ? `<span class="discount-badge">-${percent}%</span>` : ""}<span class="price-stack">${discounted ? `<s class="price-original">${currency(product.original_price)}</s>` : ""}<span class="price-current">${currency(product.price)}</span></span>`; }
-  function whatsappLink(product) { const message = product ? `Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?` : "Hola, quiero consultar por las piezas disponibles de F-ck Face."; return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`; }
+  function whatsappLink(product) {
+    let message = product ? `Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?` : "Hola, quiero consultar por las piezas disponibles de F-ck Face.";
+    if (product?.id) {
+      const url = new URL("index.html", window.location.href);
+      url.searchParams.set("prenda", product.id);
+      message += `\n\nVer prenda: ${url.href}`;
+    }
+    return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
+  }
   document.querySelectorAll('[data-whatsapp="general"]').forEach((link) => (link.href = whatsappLink()));
   function card(product) {
     const image = product.image_urls?.[0] || "img/logo1.jpg";
@@ -153,6 +161,12 @@
     const [{ data: catalog, error }, { data: drops }] = await Promise.all([client.rpc("get_public_catalog"), client.rpc("get_current_drop")]);
     if (error) { console.error(error); productGrid.innerHTML = '<p class="empty-state">NO SE PUDO CARGAR EL CATÁLOGO.</p>'; return; }
     products = catalog || []; updatePublicCountdown(drops?.[0]); render();
+    const requestedId = new URLSearchParams(window.location.search).get("prenda");
+    if (requestedId) {
+      const requestedProduct = products.find((product) => product.id === requestedId);
+      if (requestedProduct) await openProduct(requestedProduct);
+      else alert("Esta prenda ya no está disponible en el catálogo.");
+    }
   }
   load()
     .catch(error => {

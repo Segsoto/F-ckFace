@@ -9,6 +9,15 @@
   const whatsappButton = document.getElementById("dialogWhatsapp");
   const previewMode = new URLSearchParams(window.location?.search || "").get("preview") === "admin";
   let products = [], dropTimer, activeDrop, selectedCategory = null, accessPassword = null;
+  const requestedId = new URLSearchParams(window.location?.search || "").get("prenda");
+  let requestedProductHandled = false;
+  async function openRequestedProduct() {
+    if (!requestedId || requestedProductHandled) return;
+    requestedProductHandled = true;
+    const product = products.find((item) => item.id === requestedId);
+    if (product) await openProduct(product);
+    else alert("Esta prenda ya no está disponible en este drop.");
+  }
   let searchQuery = "", selectedSize = "";
   const normalizeSearch = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("es");
   const categories = {
@@ -61,7 +70,13 @@
   document.querySelectorAll('[data-whatsapp="general"]').forEach((link) => {
     link.href = `https://wa.me/${whatsapp}?text=${encodeURIComponent("Hola, quiero consultar sobre el drop exclusivo de F-ck Face.")}`;
   });
-  const whatsappLink = (product) => `https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?`)}`;
+  const whatsappLink = (product) => {
+    let message = `Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?`;
+    const url = new URL("newdrop.html", window.location.href);
+    url.searchParams.set("prenda", product.id);
+    message += `\n\nVer prenda: ${url.href}`;
+    return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
+  };
   function card(product) {
     const firstImage = normalizeImages(product)[0];
     const unavailable = product.availability !== "available" ? `<span class="product-availability ${escapeHtml(product.availability)}">${statusLabel(product.availability)}</span>` : "";
@@ -121,7 +136,9 @@
     accessPassword = password;
     localStorage.setItem(passwordKey(activeDrop), JSON.stringify({ password, expiresAt: activeDrop.public_at }));
     products = data || []; selectedCategory = null; renderCategories(); renderProducts();
-    form.hidden = true; document.getElementById("accessGranted").hidden = false; return true;
+    form.hidden = true; document.getElementById("accessGranted").hidden = false;
+    await openRequestedProduct();
+    return true;
   }
   function updateCountdown(drop) {
     clearInterval(dropTimer);
@@ -168,9 +185,20 @@
       }
       renderCategories();
       renderProducts();
+      await openRequestedProduct();
       return;
     }
     await client.rpc("release_due_drops");
+    if (requestedId) {
+      const { data: publicProducts, error } = await client.rpc("get_public_product", { p_product_id: requestedId });
+      if (error) throw error;
+      if (publicProducts?.length) {
+        const url = new URL("index.html", window.location.href);
+        url.searchParams.set("prenda", requestedId);
+        window.location.replace(url.href);
+        return;
+      }
+    }
     const { data } = await client.rpc("get_current_drop");
     activeDrop = data?.[0]; updateCountdown(activeDrop);
     document.getElementById("newDropDescription").textContent = activeDrop?.description || "Las próximas piezas están por caer.";
