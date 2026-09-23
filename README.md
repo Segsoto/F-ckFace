@@ -135,10 +135,14 @@ publicar los archivos web. Las instalaciones nuevas usan `supabase-schema.sql` c
 ### Añadir una prenda
 
 1. Completar nombre, precio, categoría, talla, largo y ancho de pecho cuando apliquen.
-2. Seleccionar de una a cuatro fotos, de máximo 5 MB por archivo.
+2. Seleccionar de una a siete fotos JPG, PNG o WebP, de máximo 10 MB por archivo.
 3. Presionar **Agregar a New Drop**.
 
 La pieza se sube a Supabase Storage y se registra con estado `new_drop`. No aparece aún en el catálogo general; solo se revela mediante `NewDrop.html` durante la ventana exclusiva.
+
+El panel comprime las fotos en el navegador **antes de subirlas**: máximo 300 KB por foto y 1600 píxeles en el lado mayor, sin recortar ni ampliar. Prefiere WebP y usa JPEG si el navegador no puede generar WebP. Las fotos que ya son pequeñas se conservan sin recompresión. Procesa una foto a la vez, muestra el progreso y al terminar informa el peso almacenado y el ahorro. Si no puede leer o comprimir una foto, detiene la preparación; no sube el original pesado. Los archivos HEIC deben exportarse a JPG.
+
+Este cambio afecta las cargas nuevas realizadas desde este panel; no impone un límite en el servidor ni modifica fotos existentes. Publicar `admin.html`, `assets/js/pages/admin.js` y `assets/js/shared/image-compression.js` juntos. Las fotos históricas requieren una migración aparte: respaldo, compresión, carga bajo rutas nuevas, verificación de las imágenes y actualización de las referencias antes de borrar originales. No iniciar esa migración mientras Supabase bloquee Storage con HTTP 402. La limpieza de huérfanas y la reducción de tráfico histórico son temas diferentes.
 
 ### El lanzamiento automático
 

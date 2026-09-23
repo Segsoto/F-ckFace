@@ -1,0 +1,23 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Prueba local de compresión</title>
+<style>body{font:16px system-ui;max-width:1000px;margin:32px auto}img{max-width:40%;max-height:380px}pre{white-space:pre-wrap}</style>
+<h1>Compresión de fotos — prueba local</h1><p>Sin conexión a Supabase ni cargas de archivos.</p><pre id="result">Ejecutando…</pre><div id="photos"></div>
+<script src="../assets/js/shared/image-compression.js"></script>
+<script>
+(async()=>{
+  const results=[];
+  const assert=(condition,message)=>{if(!condition)throw Error(message);};
+  const canvas=document.createElement('canvas');canvas.width=2400;canvas.height=1800;
+  const ctx=canvas.getContext('2d');const pixels=ctx.createImageData(canvas.width,canvas.height);
+  let seed=7;for(let i=0;i<pixels.data.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)>>>0;pixels.data[i]=seed&255;pixels.data[i+1]=(seed>>>8)&255;pixels.data[i+2]=(seed>>>16)&255;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);
+  const raw=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.95));
+  const synthetic=await ImageCompression.compress(new File([raw],'textura.jpg',{type:raw.type}));
+  const bitmap=await createImageBitmap(synthetic);assert(synthetic.size<=300000,'Excede límite');assert(bitmap.width<=1600&&bitmap.height<=1600,'Excede dimensiones');
+  results.push({test:'textura compleja',before:raw.size,after:synthetic.size,width:bitmap.width,height:bitmap.height,type:synthetic.type});bitmap.close();
+  const response=await fetch('../img/fotogorda.jpg');if(!response.ok)throw Error('No se pudo leer la foto de prueba');
+  const original=await response.blob();const output=await ImageCompression.compress(new File([original],'foto.jpg',{type:'image/jpeg'}));
+  assert(output.size<=300000,'Foto supera límite');
+  for(const blob of [original,output]){const image=new Image();image.src=URL.createObjectURL(blob);image.alt=blob===original?'Original':'Comprimida';document.getElementById('photos').append(image);}
+  results.push({test:'foto local',before:original.size,after:output.size,type:output.type});
+  document.getElementById('result').textContent='PASS\n'+JSON.stringify(results,null,2);
+})().catch(error=>{document.getElementById('result').textContent='FAIL: '+error.message;console.error(error);});
+</script></html>

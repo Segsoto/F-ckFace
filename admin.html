@@ -148,11 +148,12 @@
                 >FOTOS (HASTA 7)<input
                   id="images"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-describedby="imageCompressionHelp"
                   multiple
                   required
                 /><span id="fileCount">Seleccionar archivos</span></label
-              ><button>AGREGAR A NEW DROP</button>
+              ><p id="imageCompressionHelp">JPG, PNG o WebP, hasta 10 MB por foto. Se comprimen automáticamente antes de subir (máximo 300 KB por foto).</p><button>AGREGAR A NEW DROP</button>
             </form>
           </section>
         </div>
@@ -208,6 +209,7 @@
     <script src="config.js"></script>
     <script src="assets/js/shared/password-toggle.js"></script>
     <script src="assets/js/shared/measurements.js"></script>
+    <script src="assets/js/shared/image-compression.js"></script>
     <script src="assets/js/pages/admin.js"></script>
   </body>
 </html>

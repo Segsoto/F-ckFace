@@ -161,44 +161,26 @@
       ? `${count} archivo${count !== 1 ? "s" : ""} seleccionado${count !== 1 ? "s" : ""}`
       : "Seleccionar archivos";
   });
-  async function optimizeImage(file) {
-    const maxDimension = 1800;
-    const maxBytes = 1.5 * 1024 * 1024;
-    if (file.size <= maxBytes) return file;
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    const context = canvas.getContext("2d");
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise((resolve, reject) => {
-      canvas.toBlob((result) => result ? resolve(result) : reject(new Error("No se pudo preparar una imagen.")), "image/jpeg", 0.82);
-    });
-    return new File([blob], `${filename(file.name)}.jpg`, { type: "image/jpeg" });
-  }
-  async function uploadImages(files) {
+  async function uploadImages(files, onProgress) {
     const {
       data: { user },
     } = await client.auth.getUser();
-    const selected = [...files].slice(0, 7);
-    if (!selected.length) throw new Error("Seleccioná al menos una foto.");
-    if (files.length > 7) throw new Error("Podés cargar un máximo de 7 fotos.");
-    return Promise.all(selected.map(async (file) => {
-      if (!file.type.startsWith("image/"))
-        throw new Error("Solo podés cargar archivos de imagen.");
-      if (file.size > 10 * 1024 * 1024)
-        throw new Error("Cada imagen debe pesar menos de 10 MB.");
-      const preparedFile = await optimizeImage(file);
-      const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${filename(file.name)}`;
+    if (!user) throw new Error("Iniciá sesión otra vez antes de subir fotos.");
+    const prepared = await window.ImageCompression.prepare(files, (index, total) => onProgress(`COMPRIMIENDO ${index}/${total}...`));
+    const originalBytes = Array.from(files).reduce((total, file) => total + file.size, 0);
+    const optimizedBytes = prepared.reduce((total, file) => total + file.size, 0);
+    const urls = [];
+    for (const [index, preparedFile] of prepared.entries()) {
+      onProgress(`SUBIENDO ${index + 1}/${prepared.length}...`);
+      const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${filename(preparedFile.name)}`;
       const { error } = await client.storage
         .from("product-images")
-        .upload(path, preparedFile, { upsert: false });
+        .upload(path, preparedFile, { upsert: false, contentType: preparedFile.type });
       if (error) throw error;
       const { data } = client.storage.from("product-images").getPublicUrl(path);
-      return data.publicUrl;
-    }));
+      urls.push(data.publicUrl);
+    }
+    return { urls, originalBytes, optimizedBytes };
   }
   function numberOrNull(value) {
     if (value === "" || value == null) return null;
@@ -219,8 +201,9 @@
         const isNewDrop = publicationTarget === "new_drop";
         if (isNewDrop && !activeDrop?.id)
           throw new Error("Primero configurá el drop antes de cargar prendas.");
-        const image_urls = await uploadImages(
+        const uploaded = await uploadImages(
           document.getElementById("images").files,
+          text => { button.textContent = text; },
         );
         const { data: insertedProduct, error } = await client.from("products").insert({
           name: data.get("name").trim(),
@@ -230,7 +213,7 @@
           condition: data.get("condition") || null,
           description: data.get("description") || null,
           ...measurements.values(document.getElementById("productMeasurements")),
-          image_urls,
+          image_urls: uploaded.urls,
           status: isNewDrop ? "new_drop" : "published",
           availability: "available",
           drop_id: isNewDrop ? activeDrop.id : null,
@@ -242,7 +225,9 @@
           "Seleccionar archivos";
         products.unshift(insertedProduct);
         renderInventory();
-        notice(isNewDrop ? "Pieza agregada a New Drop." : "Pieza publicada en la tienda pública.");
+        const saved = Math.max(0, Math.round(100 * (1 - uploaded.optimizedBytes / uploaded.originalBytes)));
+        const resultText = isNewDrop ? "Pieza agregada a New Drop." : "Pieza publicada en la tienda pública.";
+        notice(`${resultText} Fotos: ${(uploaded.optimizedBytes / 1000000).toFixed(2)} MB${saved ? ` (${saved}% menos peso)` : ""}.`);
       } catch (error) {
         console.error(error);
         notice(error.message || "No se pudo agregar la pieza.", "error");
