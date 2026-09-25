@@ -7,7 +7,7 @@ La tienda está pensada para vender mediante *drops*:
 1. El equipo crea un único drop activo con apertura exclusiva, contraseña y apertura pública.
 2. Carga sus piezas, que quedan vinculadas a ese drop y en estado `new_drop`.
 3. En el período exclusivo, la comunidad abre `NewDrop.html` con la contraseña.
-4. Al cumplirse la apertura pública, las piezas pasan automáticamente a `published` y aparecen en `index.html`.
+4. Al cumplirse la apertura pública, las piezas pasan automáticamente a `published` y aparecen en `NewDrop.html`. Durante la conexión temporal, `index.html` sigue mostrando el catálogo del proyecto anterior.
 5. Las piezas apartadas o en proceso continúan visibles con su aviso; las vendidas se eliminan desde el panel.
 
 ## Tecnologías
@@ -33,7 +33,8 @@ En New Drop, al ingresar con la contraseña, los filtros muestran las categoría
 | `admin.html` | Panel de administración. |
 | `assets/css/admin.css` | Estilos del panel. |
 | `assets/js/pages/admin.js` | Inicio de sesión, carga de imágenes, alta/eliminación de piezas y programación de drops. |
-| `config.js` | URL de Supabase, clave pública y número de WhatsApp. |
+| `config.js` | Conexión anterior de `index.html` y número de WhatsApp. |
+| `drop-config.js` | Conexión nueva de `admin.html` y `NewDrop.html`. |
 | `supabase-schema.sql` | Tablas, función automática, bucket de fotos y políticas RLS. |
 | `404.html` / `assets/css/404.css` | Página personalizada para rutas inexistentes. |
 | `robots.txt` | Permite rastrear la tienda y bloquea archivos internos. |
@@ -203,13 +204,13 @@ En el modal de producto se genera una URL `wa.me` con un mensaje como:
 >
 > Ver prenda: [URL de la tienda con ?prenda=ID]
 
-El catálogo público y New Drop incluyen un enlace al detalle de la prenda, con sus fotos y medidas. En New Drop se requiere el acceso exclusivo antes de abrir el detalle; si la prenda ya es pública, el enlace redirige al catálogo público. No se incluyen contraseñas ni parámetros de vista previa administrativa. Las consultas generales no incluyen enlace de producto. Los enlaces `wa.me` precargan texto, no archivos adjuntos; este cambio no genera una miniatura específica de la prenda en WhatsApp.
+El catálogo público y New Drop incluyen un enlace al detalle de la prenda, con sus fotos y medidas. En New Drop se requiere el acceso exclusivo antes de abrir el detalle; si la prenda ya es pública, el enlace la abre en la vista pública de New Drop, que consulta su propio proyecto. No se incluyen contraseñas ni parámetros de vista previa administrativa. Las consultas generales no incluyen enlace de producto. Los enlaces `wa.me` precargan texto, no archivos adjuntos; este cambio no genera una miniatura específica de la prenda en WhatsApp.
 
-Cambiar el número en `config.js` actualiza el botón principal, el de contacto y el de cada producto.
+Durante la conexión temporal, cambiar el número en `config.js` actualiza la tienda anterior; para Admin y New Drop también hay que actualizar `drop-config.js`.
 
 ## Publicación y pruebas locales
 
-No hay dependencias de Node ni comando de build. Es un sitio estático: se puede publicar en Netlify, Vercel, GitHub Pages, Cloudflare Pages o cualquier hosting de archivos estáticos.
+No hay dependencias de Node ni comando de build. Es un sitio estático: se puede publicar en Netlify, Vercel, GitHub Pages, Cloudflare Pages o cualquier hosting de archivos estáticos. Para probarlo localmente, ejecutar `npm run dev` y abrir `http://127.0.0.1:4173`.
 
 Para desarrollo, servir la carpeta con cualquier servidor estático y abrir:
 
@@ -218,8 +219,8 @@ Para desarrollo, servir la carpeta con cualquier servidor estático y abrir:
 
 Antes de publicar cambios, comprobar que:
 
-- `config.js` apunte al proyecto Supabase correcto.
-- El SQL se haya ejecutado en ese mismo proyecto.
+- `config.js` apunte al proyecto anterior para la tienda y `drop-config.js` al proyecto nuevo para Admin y New Drop.
+- El SQL se haya ejecutado en el proyecto nuevo.
 - Exista al menos un administrador en `admin_profiles`.
 - El bucket `product-images` esté creado y público.
 - El número de WhatsApp sea el correcto.

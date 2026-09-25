@@ -8,7 +8,7 @@
   const dialog = document.getElementById("productDialog");
   const whatsappButton = document.getElementById("dialogWhatsapp");
   const previewMode = new URLSearchParams(window.location?.search || "").get("preview") === "admin";
-  let products = [], dropTimer, activeDrop, selectedCategory = null, accessPassword = null;
+  let products = [], dropTimer, activeDrop, selectedCategory = null, accessPassword = null, publicCatalog = false;
   const requestedId = new URLSearchParams(window.location?.search || "").get("prenda");
   let requestedProductHandled = false;
   async function openRequestedProduct() {
@@ -72,7 +72,7 @@
   });
   const whatsappLink = (product) => {
     let message = `Hola, quiero consultar por la pieza: ${product.name} (${currency(product.price)}). ¿Aún está disponible?`;
-    const url = new URL("newdrop.html", window.location.href);
+    const url = new URL("NewDrop.html", window.location.href);
     url.searchParams.set("prenda", product.id);
     message += `\n\nVer prenda: ${url.href}`;
     return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
@@ -162,6 +162,7 @@
   }
   async function load() {
     accessPassword = null;
+    publicCatalog = false;
     products = [];
     selectedCategory = null;
     searchQuery = "";
@@ -189,21 +190,39 @@
       return;
     }
     await client.rpc("release_due_drops");
+    let requestedPublicProduct = false;
     if (requestedId) {
-      const { data: publicProducts, error } = await client.rpc("get_public_product", { p_product_id: requestedId });
+      const { data: publicProduct, error } = await client.rpc("get_public_product", { p_product_id: requestedId });
       if (error) throw error;
-      if (publicProducts?.length) {
-        const url = new URL("index.html", window.location.href);
-        url.searchParams.set("prenda", requestedId);
-        window.location.replace(url.href);
-        return;
-      }
+      requestedPublicProduct = Boolean(publicProduct?.length);
     }
     const { data } = await client.rpc("get_current_drop");
-    activeDrop = data?.[0]; updateCountdown(activeDrop);
+    activeDrop = requestedPublicProduct ? null : data?.[0]; updateCountdown(activeDrop);
     document.getElementById("newDropDescription").textContent = activeDrop?.description || "Las próximas piezas están por caer.";
     const now = Date.now();
-    if (!activeDrop || now >= new Date(activeDrop.public_at).getTime()) { closed.hidden = false; form.hidden = true; grid.innerHTML = ""; document.getElementById("exclusiveCategories").hidden = true; return; }
+    if (!activeDrop || now >= new Date(activeDrop.public_at).getTime()) {
+      const { data: published, error } = await client.rpc("get_public_catalog");
+      if (error) throw error;
+      products = published || [];
+      publicCatalog = products.length > 0;
+      closed.hidden = publicCatalog;
+      form.hidden = true;
+      document.getElementById("countdown").hidden = publicCatalog;
+      if (publicCatalog) {
+        document.getElementById("countdownState").textContent = "DROP DISPONIBLE PARA TODOS";
+        document.getElementById("newDropDescription").textContent = "Explorá las piezas del drop y consultá por WhatsApp.";
+        document.getElementById("accessGranted").textContent = "ACCESO PÚBLICO ACTIVO";
+        document.getElementById("accessGranted").hidden = false;
+        renderCategories();
+        renderProducts();
+        await openRequestedProduct();
+      } else {
+        grid.innerHTML = "";
+        document.getElementById("exclusiveCategories").hidden = true;
+      }
+      return;
+    }
+    document.getElementById("countdown").hidden = false;
     closed.hidden = true;
     if (now < new Date(activeDrop.exclusive_at).getTime()) { form.hidden = true; grid.innerHTML = ""; document.getElementById("exclusiveCategories").hidden = true; return; }
     form.hidden = false;
@@ -233,11 +252,13 @@
     }
   });
   async function openProduct(product) {
-    if (!product || !client || !activeDrop?.id || (!accessPassword && !previewMode)) return;
+    if (!product || !client || (!publicCatalog && (!activeDrop?.id || (!accessPassword && !previewMode)))) return;
     try {
-      const { data, error } = previewMode
-        ? { data: await window.DropPreview.products(client, activeDrop.id) }
-        : await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: accessPassword });
+      const { data, error } = publicCatalog
+        ? await client.rpc("get_public_product", { p_product_id: product.id })
+        : previewMode
+          ? { data: await window.DropPreview.products(client, activeDrop.id) }
+          : await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: accessPassword });
       if (error) throw error;
       const freshProduct = data?.find((item) => item.id === product.id);
       if (!freshProduct) {
