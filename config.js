@@ -1,6 +1,6 @@
-// Credenciales públicas de Supabase. Cambialas si F-ck Face usará otro proyecto.
+// Conexión pública compartida por la tienda, Admin y NewDrop.
 window.FUCK_FACE_CONFIG = {
-  url: "https://zfyotvnrvfbegfrmjygo.supabase.co",
-  anonKey: "sb_publishable_xGBupPCbo5kKxtCHxEVAsA_2VcTCfPg",
+  url: "https://ixkiwzhzcivwqjebuqzt.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4a2l3emh6Y2l2d3FqZWJ1cXp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMDUzMjgsImV4cCI6MjEwNTg4MTMyOH0.ebzrgb-mDjCmLbU8JF6c1NqwI8weIlvnbAxdkn1c_Q0",
   whatsappNumber: "50689168397",
 };

@@ -15,13 +15,11 @@ test('entry pages reference existing local scripts, styles and images', () => {
   }
 });
 
-test('Admin and NewDrop use the new project while Shop keeps the previous project', () => {
-  assert.match(fs.readFileSync('index.html', 'utf8'), /src="config\.js"/);
-  for (const file of ['admin.html', 'NewDrop.html']) {
-    assert.match(fs.readFileSync(file, 'utf8'), /src="drop-config\.js"/);
-    assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /src="config\.js"/);
+test('Shop, Admin and NewDrop share the new Supabase project', () => {
+  for (const file of ['index.html', 'admin.html', 'NewDrop.html']) {
+    assert.match(fs.readFileSync(file, 'utf8'), /src="config\.js"/);
   }
-  assert.match(fs.readFileSync('drop-config.js', 'utf8'), /https:\/\/ixkiwzhzcivwqjebuqzt\.supabase\.co/);
+  assert.match(fs.readFileSync('config.js', 'utf8'), /https:\/\/ixkiwzhzcivwqjebuqzt\.supabase\.co/);
   assert.match(fs.readFileSync('index.html', 'utf8'), /href="NewDrop\.html"/);
 });
 
