@@ -8,7 +8,7 @@
   const dialog = document.getElementById("productDialog");
   const whatsappButton = document.getElementById("dialogWhatsapp");
   const previewMode = new URLSearchParams(window.location?.search || "").get("preview") === "admin";
-  let products = [], dropTimer, activeDrop, selectedCategory = null, accessPassword = null, publicCatalog = false;
+  let products = [], dropTimer, activeDrop, selectedCategory = null, accessPassword = null;
   const requestedId = new URLSearchParams(window.location?.search || "").get("prenda");
   let requestedProductHandled = false;
   async function openRequestedProduct() {
@@ -153,16 +153,13 @@
       [["Days", 86400000], ["Hours", 3600000], ["Minutes", 60000], ["Seconds", 1000]].forEach(([key, unit]) => { const value = Math.floor(left / unit); set(key, String(value).padStart(2, "0")); left -= value * unit; });
       const exclusiveIsActive = now >= exclusive;
       state.textContent = exclusiveIsActive ? "ACCESO EXCLUSIVO ACTIVO" : "ACCESO EXCLUSIVO PRÓXIMAMENTE";
-      if (exclusiveIsActive && form.hidden && !accessPassword) {
-        form.hidden = false;
-        document.getElementById("exclusiveCategories").hidden = true;
-      }
+      form.querySelector('button[type="submit"]').disabled = !exclusiveIsActive;
+      if (!accessPassword) form.hidden = false;
     };
     tick(); dropTimer = setInterval(tick, 1000);
   }
   async function load() {
     accessPassword = null;
-    publicCatalog = false;
     products = [];
     selectedCategory = null;
     searchQuery = "";
@@ -190,42 +187,36 @@
       return;
     }
     await client.rpc("release_due_drops");
-    let requestedPublicProduct = false;
     if (requestedId) {
-      const { data: publicProduct, error } = await client.rpc("get_public_product", { p_product_id: requestedId });
+      const { data: publicProducts, error } = await client.rpc("get_public_product", { p_product_id: requestedId });
       if (error) throw error;
-      requestedPublicProduct = Boolean(publicProduct?.length);
+      if (publicProducts?.length) {
+        const url = new URL("index.html", window.location.href);
+        url.searchParams.set("prenda", requestedId);
+        window.location.replace(url.href);
+        return;
+      }
     }
     const { data } = await client.rpc("get_current_drop");
-    activeDrop = requestedPublicProduct ? null : data?.[0]; updateCountdown(activeDrop);
+    activeDrop = data?.[0]; updateCountdown(activeDrop);
     document.getElementById("newDropDescription").textContent = activeDrop?.description || "Las próximas piezas están por caer.";
     const now = Date.now();
     if (!activeDrop || now >= new Date(activeDrop.public_at).getTime()) {
-      const { data: published, error } = await client.rpc("get_public_catalog");
-      if (error) throw error;
-      products = published || [];
-      publicCatalog = products.length > 0;
-      closed.hidden = publicCatalog;
+      closed.hidden = false;
       form.hidden = true;
-      document.getElementById("countdown").hidden = publicCatalog;
-      if (publicCatalog) {
-        document.getElementById("countdownState").textContent = "DROP DISPONIBLE PARA TODOS";
-        document.getElementById("newDropDescription").textContent = "Explorá las piezas del drop y consultá por WhatsApp.";
-        document.getElementById("accessGranted").textContent = "ACCESO PÚBLICO ACTIVO";
-        document.getElementById("accessGranted").hidden = false;
-        renderCategories();
-        renderProducts();
-        await openRequestedProduct();
-      } else {
-        grid.innerHTML = "";
-        document.getElementById("exclusiveCategories").hidden = true;
-      }
+      grid.innerHTML = "";
+      document.getElementById("exclusiveCategories").hidden = true;
       return;
     }
-    document.getElementById("countdown").hidden = false;
     closed.hidden = true;
-    if (now < new Date(activeDrop.exclusive_at).getTime()) { form.hidden = true; grid.innerHTML = ""; document.getElementById("exclusiveCategories").hidden = true; return; }
     form.hidden = false;
+    if (now < new Date(activeDrop.exclusive_at).getTime()) {
+      grid.innerHTML = "";
+      document.getElementById("exclusiveCategories").hidden = true;
+      document.getElementById("accessMessage").textContent = "Podrás ingresar cuando termine la cuenta regresiva.";
+      return;
+    }
+    document.getElementById("accessMessage").textContent = "";
     try {
       const saved = JSON.parse(localStorage.getItem(passwordKey(activeDrop)) || "null");
       if (saved?.password && new Date(saved.expiresAt).getTime() > now) await unlock(saved.password);
@@ -236,6 +227,7 @@
     const button = form.querySelector('button[type="submit"]');
     const password = document.getElementById("accessPassword").value;
     if (!password || button.disabled) return;
+    if (Date.now() < new Date(activeDrop.exclusive_at).getTime()) return;
     button.disabled = true;
     document.getElementById("accessMessage").textContent = "";
     window.StorePageLoader?.start();
@@ -252,13 +244,11 @@
     }
   });
   async function openProduct(product) {
-    if (!product || !client || (!publicCatalog && (!activeDrop?.id || (!accessPassword && !previewMode)))) return;
+    if (!product || !client || !activeDrop?.id || (!accessPassword && !previewMode)) return;
     try {
-      const { data, error } = publicCatalog
-        ? await client.rpc("get_public_product", { p_product_id: product.id })
-        : previewMode
-          ? { data: await window.DropPreview.products(client, activeDrop.id) }
-          : await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: accessPassword });
+      const { data, error } = previewMode
+        ? { data: await window.DropPreview.products(client, activeDrop.id) }
+        : await client.rpc("get_exclusive_products", { p_drop_id: activeDrop.id, p_password: accessPassword });
       if (error) throw error;
       const freshProduct = data?.find((item) => item.id === product.id);
       if (!freshProduct) {

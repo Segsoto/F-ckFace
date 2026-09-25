@@ -7,7 +7,7 @@ La tienda está pensada para vender mediante *drops*:
 1. El equipo crea un único drop activo con apertura exclusiva, contraseña y apertura pública.
 2. Carga sus piezas, que quedan vinculadas a ese drop y en estado `new_drop`.
 3. En el período exclusivo, la comunidad abre `NewDrop.html` con la contraseña.
-4. Al cumplirse la apertura pública, las piezas pasan automáticamente a `published` y aparecen en `index.html` y `NewDrop.html`.
+4. Al cumplirse la apertura pública, las piezas pasan automáticamente a `published`, dejan de mostrarse en `NewDrop.html` y aparecen en `index.html`.
 5. Las piezas apartadas o en proceso continúan visibles con su aviso; las vendidas se eliminan desde el panel.
 
 ## Tecnologías
@@ -203,7 +203,7 @@ En el modal de producto se genera una URL `wa.me` con un mensaje como:
 >
 > Ver prenda: [URL de la tienda con ?prenda=ID]
 
-El catálogo público y New Drop incluyen un enlace al detalle de la prenda, con sus fotos y medidas. En New Drop se requiere el acceso exclusivo antes de abrir el detalle; si la prenda ya es pública, el enlace la abre en la vista pública de New Drop, que consulta su propio proyecto. No se incluyen contraseñas ni parámetros de vista previa administrativa. Las consultas generales no incluyen enlace de producto. Los enlaces `wa.me` precargan texto, no archivos adjuntos; este cambio no genera una miniatura específica de la prenda en WhatsApp.
+El catálogo público y New Drop incluyen un enlace al detalle de la prenda, con sus fotos y medidas. En New Drop se requiere la contraseña durante el período exclusivo; si la prenda ya es pública, el enlace redirige al catálogo de `index.html`. No se incluyen contraseñas ni parámetros de vista previa administrativa. Las consultas generales no incluyen enlace de producto. Los enlaces `wa.me` precargan texto, no archivos adjuntos; este cambio no genera una miniatura específica de la prenda en WhatsApp.
 
 Cambiar el número en `config.js` actualiza la tienda, Admin y New Drop.
 
