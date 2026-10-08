@@ -8,7 +8,7 @@ La tienda está pensada para vender mediante *drops*:
 2. Carga sus piezas, que quedan vinculadas a ese drop y en estado `new_drop`.
 3. En el período exclusivo, la comunidad abre `NewDrop.html` con la contraseña.
 4. Al cumplirse la apertura pública, las piezas pasan automáticamente a `published`, dejan de mostrarse en `NewDrop.html` y aparecen en `index.html`.
-5. Las piezas apartadas o en proceso continúan visibles con su aviso; las vendidas se eliminan desde el panel.
+5. Las piezas apartadas o en proceso continúan visibles con su aviso; las vendidas salen del catálogo y quedan en el historial privado con su monto de venta.
 
 ## Tecnologías
 
@@ -32,7 +32,8 @@ En New Drop, al ingresar con la contraseña, los filtros muestran las categoría
 | `assets/js/pages/newdrop.js` | Validación segura del acceso exclusivo, contador y catálogo del drop. |
 | `admin.html` | Panel de administración. |
 | `assets/css/admin.css` | Estilos del panel. |
-| `assets/js/pages/admin.js` | Inicio de sesión, carga de imágenes, alta/eliminación de piezas y programación de drops. |
+| `assets/js/pages/admin.js` | Inicio de sesión, carga de imágenes, inventario, historial de ventas y programación de drops. |
+| `sales-history.sql` | Cambio de esquema para registrar ventas en un proyecto existente. |
 | `config.js` | Conexión compartida de tienda, Admin y NewDrop; número de WhatsApp. |
 | `supabase-schema.sql` | Tablas, función automática, bucket de fotos y políticas RLS. |
 | `404.html` / `assets/css/404.css` | Página personalizada para rutas inexistentes. |
@@ -54,6 +55,12 @@ En New Drop, al ingresar con la contraseña, los filtros muestran las categoría
 La URL de `admin.html` no necesita ocultarse: una URL estática puede descubrirse. El acceso se protege en el servidor mediante Supabase Auth, RLS y la pertenencia a `admin_profiles`; nunca mediante una contraseña JavaScript.
 
 ### 1. Configurar Supabase
+
+En una instalación existente, ejecutá [`sales-history.sql`](sales-history.sql) en el SQL Editor del proyecto indicado por `config.js` **antes** de publicar el nuevo panel. El historial empieza con las ventas que se registren desde esta versión; las piezas borradas anteriormente no se pueden reconstruir automáticamente. La operación «Vendida» conserva la fila y su primera foto, y borra las fotos adicionales mediante la API de Storage. Si Storage falla, los archivos pendientes quedan registrados para reintentar desde el historial. El botón **Conservar solo una foto en ventas** aplica la misma limpieza a ventas anteriores. «Eliminar» borra la fila y deja sus fotos en una cola de limpieza; el panel intenta borrarlas con la API de Storage y ofrece **Reintentar limpieza de fotos** si algo falla. Las cargas nuevas registran sus rutas antes de subir fotos, de modo que un fallo de subida o de guardado también quede en la cola. Los registros de carga incompleta aparecen para reintento después de una hora, evitando que otra sesión borre fotos mientras aún se suben. Las fotos huérfanas creadas antes de esta versión no se pueden asociar automáticamente a esa cola: requieren una auditoría del bucket del proyecto actual contra las referencias de `products`.
+
+El historial muestra una vista previa y una ficha de cada prenda vendida con su foto principal, descripción, medidas, precio publicado, monto y fecha de venta. Los resúmenes semanales, quincenales (días 1–15 y 16–fin de mes) y mensuales usan la hora de Costa Rica. Son **ingresos brutos**: no representan utilidad después de costos. Revertir una venta no recupera las fotos adicionales que ya fueron borradas.
+
+Para reducir el tráfico de fotos desde Supabase, el catálogo usa portadas WebP locales de `img/product-thumbs/` cuando corresponden a la foto actual. Al añadir o cambiar prendas, ejecutá `python tools/build-product-thumbnails.py` (requiere Pillow) y publicá los archivos generados junto con el sitio. El script solo descarga la primera foto de cada prenda pública del proyecto configurado. En la galería, las demás fotos de Supabase se descargan únicamente cuando el visitante elige su número. Una prenda sin portada local conserva su foto de Supabase.
 
 En el proyecto de Supabase, abrir **SQL Editor** y ejecutar completo [`supabase-schema.sql`](supabase-schema.sql). El script crea:
 
@@ -233,7 +240,7 @@ Antes de publicar cambios, comprobar que:
 - Las funciones públicas solo devuelven datos filtrados; el acceso de administración requiere sesión autenticada y una fila propia en `admin_profiles`.
 - Las cargas de Storage deben conservar una ruta que empiece con el UUID del usuario administrador. No relajar esa política a `bucket_id` solamente.
 - Configurar límites de intentos y MFA en **Authentication → Settings**. La contraseña del New Drop no sustituye la autenticación del panel.
-- Las fotos eliminadas desde el inventario actualmente eliminan el registro de la prenda, pero no borran automáticamente sus archivos del bucket. Es una mejora pendiente para evitar fotos sin uso.
+- Las prendas eliminadas desde el inventario se retiran mediante `delete_product_for_admin`, que guarda sus rutas en `deleted_product_images` dentro de la misma transacción. Las cargas nuevas también guardan allí sus rutas antes de subir archivos. El navegador borra los archivos mediante Storage API. Si falla, la cola permanece para reintentar; no se borran archivos con SQL. La limpieza comprueba antes si otra prenda utiliza cada foto.
 - El botón **Editar** del inventario permite corregir los datos de cualquier pieza publicada o de New Drop. Al reducir el precio, guarda el importe anterior y calcula automáticamente la rebaja; **Quitar descuento** vuelve a mostrar un único precio.
 - Si se agregan categorías, cambiar las opciones del `<select>` en `admin.html`, las tarjetas y el objeto `categoryNames` en `assets/js/pages/app.js`/`index.html`, y la restricción `check` de `products.category` en la base de datos mediante una migración.
 

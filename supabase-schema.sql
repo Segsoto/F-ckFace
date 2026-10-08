@@ -30,10 +30,20 @@ create table if not exists public.products (
   condition text,
   description text,
   image_urls text[] not null default '{}',
-  status text not null default 'new_drop' check (status in ('new_drop','published')),
+  status text not null default 'new_drop' check (status in ('new_drop','published','sold')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Fotos de prendas eliminadas que todavía requieren limpieza en Storage.
+create table if not exists public.deleted_product_images (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null,
+  urls text[] not null default '{}',
+  available_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.deleted_product_images add column if not exists available_at timestamptz not null default now();
 
 -- Campos añadidos para el flujo exclusivo. release_at se conserva por compatibilidad
 -- y representa la misma fecha que public_at.
@@ -54,6 +64,14 @@ alter table public.products add column if not exists width_cm numeric(6,2) check
 alter table public.products add column if not exists depth_cm numeric(6,2) check (depth_cm >= 0);
 alter table public.products add column if not exists availability text not null default 'available';
 alter table public.products add column if not exists original_price integer;
+alter table public.products add column if not exists sale_price integer;
+alter table public.products add column if not exists sold_at timestamptz;
+alter table public.products add column if not exists sale_origin_status text;
+alter table public.products add column if not exists image_cleanup_pending text[] not null default '{}';
+alter table public.products drop constraint if exists products_status_check;
+alter table public.products add constraint products_status_check check (status in ('new_drop','published','sold'));
+alter table public.products drop constraint if exists products_sale_check;
+alter table public.products add constraint products_sale_check check ((status = 'sold' and sale_price is not null and sale_price >= 0 and sold_at is not null and sale_origin_status in ('new_drop','published')) or (status <> 'sold' and sale_price is null and sold_at is null and sale_origin_status is null));
 alter table public.products drop constraint if exists products_original_price_check;
 alter table public.products add constraint products_original_price_check check (original_price is null or (original_price > price and original_price > 0));
 -- Categorías vigentes. Se conservan las categorías anteriores para no invalidar inventario ya creado.
@@ -214,12 +232,15 @@ grant execute on function public.get_exclusive_products(uuid, text) to anon, aut
 -- Las tablas no se consultan directamente desde el navegador público: el catálogo
 -- y los drops pasan por las funciones anteriores, que filtran sus resultados.
 revoke all on table public.admin_profiles, public.drops, public.products from anon;
+revoke all on table public.deleted_product_images from anon;
 grant select on table public.admin_profiles to authenticated;
 grant all on table public.drops, public.products to authenticated;
+grant select, insert, update, delete on table public.deleted_product_images to authenticated;
 
 alter table public.admin_profiles enable row level security;
 alter table public.drops enable row level security;
 alter table public.products enable row level security;
+alter table public.deleted_product_images enable row level security;
 
 drop policy if exists "admins can see themselves" on public.admin_profiles;
 drop policy if exists "public can see active drops" on public.drops;
@@ -229,6 +250,30 @@ drop policy if exists "admins manage products" on public.products;
 create policy "admins can see themselves" on public.admin_profiles for select to authenticated using (user_id = auth.uid());
 create policy "admins manage drops" on public.drops for all to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "admins manage products" on public.products for all to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "admins manage deleted product images" on public.deleted_product_images;
+create policy "admins manage deleted product images" on public.deleted_product_images for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- En una sola transacción retira la prenda y conserva las rutas para borrar
+-- sus archivos mediante Storage API, incluso si la limpieza debe reintentarse.
+create or replace function public.delete_product_for_admin(p_product_id uuid)
+returns uuid language plpgsql security invoker set search_path = public
+as $$
+declare
+  photo_urls text[];
+  job_id uuid;
+begin
+  if not public.is_admin() then raise exception 'No autorizado.'; end if;
+  select image_urls || image_cleanup_pending into photo_urls
+  from public.products where id = p_product_id and status <> 'sold' for update;
+  if not found then raise exception 'La prenda no existe en el inventario.'; end if;
+  insert into public.deleted_product_images (product_id, urls)
+  values (p_product_id, photo_urls) returning id into job_id;
+  delete from public.products where id = p_product_id and status <> 'sold';
+  return job_id;
+end;
+$$;
+revoke execute on function public.delete_product_for_admin(uuid) from public;
+grant execute on function public.delete_product_for_admin(uuid) to authenticated;
 
 insert into storage.buckets (id, name, public) values ('product-images', 'product-images', true) on conflict (id) do update set public = true;
 drop policy if exists "admins upload product images" on storage.objects;
@@ -236,7 +281,7 @@ drop policy if exists "admins update product images" on storage.objects;
 drop policy if exists "admins delete product images" on storage.objects;
 create policy "admins upload product images" on storage.objects for insert to authenticated with check (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%'));
 create policy "admins update product images" on storage.objects for update to authenticated using (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%')) with check (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%'));
-create policy "admins delete product images" on storage.objects for delete to authenticated using (bucket_id = 'product-images' and public.is_admin() and name like (auth.uid()::text || '/%'));
+create policy "admins delete product images" on storage.objects for delete to authenticated using (bucket_id = 'product-images' and public.is_admin());
 
 -- Obliga a PostgREST a detectar los RPC recién creados o actualizados.
 -- Sin este aviso, el endpoint /rpc/save_active_drop puede responder 404 hasta

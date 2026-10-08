@@ -54,6 +54,7 @@
           <button class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="publishModule" data-module="publishModule">PUBLICAR PRENDA</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="dropModule" data-module="dropModule">CONFIGURAR DROP</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="publishedModule" data-module="publishedModule">PRENDAS PUBLICADAS</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="salesModule" data-module="salesModule">HISTORIAL DE VENTAS</button>
         </nav>
         <div class="admin-grid">
           <section class="panel drop-panel admin-module" id="dropModule" data-admin-module="dropModule" role="tabpanel" hidden>
@@ -189,6 +190,23 @@
           <div id="inventoryList" class="inventory-list">
             <p>CARGANDO...</p>
           </div>
+          <div id="deletedPhotoCleanup" class="deleted-photo-cleanup" hidden><p id="deletedPhotoCleanupHelp"></p><button id="retryDeletedPhotos" type="button" class="secondary">REINTENTAR LIMPIEZA DE FOTOS</button></div>
+        </section>
+        <section class="inventory admin-module" id="salesModule" data-admin-module="salesModule" role="tabpanel" hidden>
+          <div class="inventory-title"><div><p class="eyebrow">VENTAS</p><h2>HISTORIAL DE VENTAS</h2></div></div>
+          <div class="sales-summary"><div><span>INGRESOS BRUTOS REGISTRADOS</span><strong id="salesTotal">₡0</strong></div><div><span>PRENDAS VENDIDAS</span><strong id="salesCount">0</strong></div></div>
+          <div class="sales-period-cards" aria-label="Ingresos del período actual">
+            <article><span>ESTA SEMANA</span><strong id="salesWeekTotal">₡0</strong><small id="salesWeekLabel"></small><small id="salesWeekCount"></small></article>
+            <article><span>ESTA QUINCENA</span><strong id="salesFortnightTotal">₡0</strong><small id="salesFortnightLabel"></small><small id="salesFortnightCount"></small></article>
+            <article><span>ESTE MES</span><strong id="salesMonthTotal">₡0</strong><small id="salesMonthLabel"></small><small id="salesMonthCount"></small></article>
+          </div>
+          <div class="sales-breakdown-head"><h3>DESGLOSE POR PERÍODO</h3><label>VER<select id="salesPeriodFilter"><option value="week">SEMANAL</option><option value="fortnight">QUINCENAL</option><option value="month">MENSUAL</option></select></label></div>
+          <div id="salesPeriodList" class="sales-period-list"></div>
+          <p class="subtle">Los períodos usan la hora de Costa Rica. Los ingresos son montos de venta antes de costos y comisiones.</p>
+          <h3 class="sales-list-title">PRENDAS VENDIDAS</h3>
+          <p id="salePhotoCleanupHelp" class="subtle" hidden></p>
+          <button id="cleanupSoldPhotos" class="secondary" type="button" hidden>CONSERVAR SOLO UNA FOTO EN VENTAS</button>
+          <div id="salesList" class="inventory-list" aria-live="polite"></div>
         </section>
       </section>
     </main>
@@ -205,11 +223,37 @@
         <div class="edit-actions"><button type="submit">GUARDAR CAMBIOS</button><button type="button" id="removeDiscount" class="secondary">QUITAR DESCUENTO</button></div>
       </form>
     </dialog>
+    <dialog class="edit-dialog sale-dialog" id="saleDialog">
+      <button class="dialog-close" id="closeSaleDialog" type="button" aria-label="Cerrar">×</button>
+      <form id="saleForm">
+        <p class="eyebrow">REGISTRAR VENTA</p><h2 id="saleProductTitle">PRODUCTO</h2>
+        <input id="saleProductId" type="hidden" />
+        <label>MONTO RECIBIDO (₡)<input id="salePrice" type="number" min="0" step="1" required /></label>
+        <p class="subtle">La prenda saldrá de la tienda y aparecerá en el historial.</p>
+        <button type="submit">CONFIRMAR VENTA</button>
+      </form>
+    </dialog>
+    <dialog class="sale-detail-dialog" id="saleDetailDialog" aria-labelledby="saleDetailTitle">
+      <button class="dialog-close" id="closeSaleDetail" type="button" aria-label="Cerrar detalle">×</button>
+      <div class="sale-detail-layout">
+        <div class="sale-detail-media"><img id="saleDetailImage" alt="" /><div id="saleDetailGallery" class="sale-detail-gallery" aria-label="Fotos de la prenda"></div></div>
+        <div class="sale-detail-content">
+          <p class="eyebrow">FICHA DE VENTA</p><h2 id="saleDetailTitle"></h2>
+          <dl id="saleDetailFacts" class="sale-detail-facts"></dl>
+          <section><h3>DESCRIPCIÓN</h3><p id="saleDetailDescription"></p></section>
+          <section><h3>MEDIDAS</h3><dl id="saleDetailMeasurements" class="sale-detail-facts"></dl></section>
+          <button id="backToSales" class="secondary" type="button">VOLVER AL HISTORIAL</button>
+        </div>
+      </div>
+    </dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="assets/js/shared/password-toggle.js"></script>
     <script src="assets/js/shared/measurements.js"></script>
     <script src="assets/js/shared/image-compression.js"></script>
+    <script src="assets/js/shared/product-thumbnails.js"></script>
+    <script src="assets/js/shared/sales-report.js"></script>
+    <script src="assets/js/shared/sale-photos.js"></script>
     <script src="assets/js/pages/admin.js"></script>
   </body>
 </html>

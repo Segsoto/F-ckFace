@@ -8,7 +8,8 @@
     adminView = document.getElementById("adminView"),
     message = document.getElementById("message"),
     loginMessage = document.getElementById("loginMessage"),
-    inventory = document.getElementById("inventoryList");
+    inventory = document.getElementById("inventoryList"),
+    salesList = document.getElementById("salesList");
   const measurements = window.ProductMeasurements;
   function bindMeasurements(formId, containerId, categorySelector) {
     const form = document.getElementById(formId);
@@ -30,7 +31,7 @@
   }
   const resetNewMeasurements = bindMeasurements("productForm", "productMeasurements", '[name="category"]');
   const resetEditMeasurements = bindMeasurements("editProductForm", "editMeasurements", '#editCategory');
-  let activeDrop = null, products = [], removeDiscountRequested = false, inventoryQuery = "";
+  let activeDrop = null, products = [], deletionJobs = [], removeDiscountRequested = false, inventoryQuery = "";
   const inventoryFilters = { size: "", category: "", minPrice: "", maxPrice: "", discount: "" };
   function notice(text, type = "success", target = message) {
     if (!target) return;
@@ -169,18 +170,27 @@
     const prepared = await window.ImageCompression.prepare(files, (index, total) => onProgress(`COMPRIMIENDO ${index}/${total}...`));
     const originalBytes = Array.from(files).reduce((total, file) => total + file.size, 0);
     const optimizedBytes = prepared.reduce((total, file) => total + file.size, 0);
-    const urls = [];
-    for (const [index, preparedFile] of prepared.entries()) {
-      onProgress(`SUBIENDO ${index + 1}/${prepared.length}...`);
-      const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${filename(preparedFile.name)}`;
-      const { error } = await client.storage
-        .from("product-images")
-        .upload(path, preparedFile, { upsert: false, contentType: preparedFile.type });
-      if (error) throw error;
-      const { data } = client.storage.from("product-images").getPublicUrl(path);
-      urls.push(data.publicUrl);
+    const bucket = client.storage.from("product-images");
+    const paths = prepared.map((file) => `${user.id}/${Date.now()}-${crypto.randomUUID()}-${filename(file.name)}`);
+    const urls = paths.map((path) => bucket.getPublicUrl(path).data.publicUrl);
+    // Registrar las rutas primero evita perder el rastro si la carga se interrumpe.
+    const { data: job, error: queueError } = await client.from("deleted_product_images")
+      .insert({ product_id: crypto.randomUUID(), urls, available_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() }).select("id,urls").single();
+    if (queueError) throw queueError;
+    try {
+      for (const [index, preparedFile] of prepared.entries()) {
+        onProgress(`SUBIENDO ${index + 1}/${prepared.length}...`);
+        const { error } = await bucket.upload(paths[index], preparedFile, {
+          upsert: false, contentType: preparedFile.type, cacheControl: "86400",
+        });
+        if (error) throw error;
+      }
+    } catch (error) {
+      try { await window.SalePhotos.cleanupDeleted(client, job, config.url); }
+      catch (cleanupError) { console.error("La limpieza de la carga quedó pendiente:", cleanupError); }
+      throw error;
     }
-    return { urls, originalBytes, optimizedBytes };
+    return { urls, originalBytes, optimizedBytes, cleanupJob: job };
   }
   function numberOrNull(value) {
     if (value === "" || value == null) return null;
@@ -195,13 +205,15 @@
       const button = form.querySelector("button");
       button.disabled = true;
       button.textContent = "SUBIENDO...";
+      let uploaded;
+      let productSaved = false;
       try {
         const data = new FormData(form);
         const publicationTarget = data.get("publication_target");
         const isNewDrop = publicationTarget === "new_drop";
         if (isNewDrop && !activeDrop?.id)
           throw new Error("Primero configurá el drop antes de cargar prendas.");
-        const uploaded = await uploadImages(
+        uploaded = await uploadImages(
           document.getElementById("images").files,
           text => { button.textContent = text; },
         );
@@ -219,6 +231,11 @@
           drop_id: isNewDrop ? activeDrop.id : null,
         }).select().single();
         if (error) throw error;
+        productSaved = true;
+        // Un reintento conservará las fotos si el producto ya las referencia.
+        const { error: queueError } = await client.from("deleted_product_images")
+          .delete().eq("id", uploaded.cleanupJob.id).select("id").single();
+        if (queueError) console.warn("Quedó pendiente cerrar el registro de carga:", queueError);
         form.reset();
         resetNewMeasurements();
         document.getElementById("fileCount").textContent =
@@ -229,6 +246,10 @@
         const resultText = isNewDrop ? "Pieza agregada a New Drop." : "Pieza publicada en la tienda pública.";
         notice(`${resultText} Fotos: ${(uploaded.optimizedBytes / 1000000).toFixed(2)} MB${saved ? ` (${saved}% menos peso)` : ""}.`);
       } catch (error) {
+        if (uploaded && !productSaved) {
+          try { await window.SalePhotos.cleanupDeleted(client, uploaded.cleanupJob, config.url); }
+          catch (cleanupError) { console.error("La limpieza de la carga quedó pendiente:", cleanupError); }
+        }
         console.error(error);
         notice(error.message || "No se pudo agregar la pieza.", "error");
       } finally {
@@ -334,15 +355,41 @@
       document.getElementById("dropText").value = drop.description || "";
     }
     renderInventory();
+    await loadDeletionJobs();
   }
+  async function loadDeletionJobs() {
+    const { data, error } = await client.from("deleted_product_images").select("id,urls,created_at").lte("available_at", new Date().toISOString()).order("created_at", { ascending: true });
+    if (error) { console.warn("No se pudieron consultar las fotos pendientes de eliminación:", error); return; }
+    deletionJobs = data || [];
+    const panel = document.getElementById("deletedPhotoCleanup");
+    panel.hidden = !deletionJobs.length;
+    document.getElementById("deletedPhotoCleanupHelp").textContent = deletionJobs.length ? `${deletionJobs.length} ${deletionJobs.length === 1 ? "limpieza de fotos pendiente" : "limpiezas de fotos pendientes"}.` : "";
+  }
+  async function cleanupDeletionJobs(jobs = deletionJobs) {
+    let incomplete = 0;
+    for (const job of jobs) {
+      try { if (await window.SalePhotos.cleanupDeleted(client, job, config.url)) incomplete++; }
+      catch (error) { console.error("No se pudo completar la limpieza de fotos:", error); incomplete++; }
+    }
+    await loadDeletionJobs();
+    return incomplete;
+  }
+  document.getElementById("retryDeletedPhotos").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    const incomplete = await cleanupDeletionJobs();
+    notice(incomplete ? `${incomplete} limpiezas siguen pendientes. Reintentá más tarde.` : "Fotos pendientes eliminadas de Storage.", incomplete ? "error" : "success");
+    button.disabled = false;
+  });
   function renderInventory() {
     syncSizeFilterOptions();
+    const activeProducts = products.filter((product) => product.status !== "sold");
     const query = inventoryQuery.trim().toLocaleLowerCase();
     const minPrice = Number(inventoryFilters.minPrice);
     const maxPrice = Number(inventoryFilters.maxPrice);
     const hasMinPrice = inventoryFilters.minPrice !== "" && Number.isFinite(minPrice);
     const hasMaxPrice = inventoryFilters.maxPrice !== "" && Number.isFinite(maxPrice);
-    const visibleProducts = products.filter((product) => {
+    const visibleProducts = activeProducts.filter((product) => {
       const discounted = Number(product.original_price) > Number(product.price);
       const matchesQuery = !query || [product.name, product.category, product.size, product.status, product.condition, product.description]
         .filter(Boolean)
@@ -358,16 +405,45 @@
     });
     const hasFilters = query || Object.values(inventoryFilters).some(Boolean);
     document.getElementById("inventoryCount").textContent = query
-      ? `${visibleProducts.length} DE ${products.length} PIEZAS`
-      : hasFilters ? `${visibleProducts.length} DE ${products.length} PIEZAS`
-      : `${products.length} PIEZAS`;
+      ? `${visibleProducts.length} DE ${activeProducts.length} PIEZAS`
+      : hasFilters ? `${visibleProducts.length} DE ${activeProducts.length} PIEZAS`
+      : `${activeProducts.length} PIEZAS`;
     inventory.innerHTML = visibleProducts.map((product) =>
-      `<article class="inventory-row"><img src="${safe(product.image_urls?.[0] || "img/logo1.jpg")}" alt="" loading="lazy" decoding="async"><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${safe(product.status)}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${safe(product.id)}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${safe(product.id)}">EDITAR</button><button class="delete" data-delete="${safe(product.id)}">VENDIDA / ELIMINAR</button></article>`
+      `<article class="inventory-row"><img src="${safe(product.image_urls?.[0] || "img/logo1.jpg")}" alt="" loading="lazy" decoding="async"><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${safe(product.status)}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${safe(product.id)}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${safe(product.id)}" type="button">EDITAR</button><button class="sold" data-sold="${safe(product.id)}" type="button">VENDIDA</button><button class="delete" data-delete="${safe(product.id)}" type="button">ELIMINAR</button></article>`
     ).join("") || "<p>NO HAY PIEZAS TODAVÍA.</p>";
+    renderSales();
   }
+  function renderSales() {
+    const sold = products.filter((product) => product.status === "sold").sort((a, b) => new Date(b.sold_at) - new Date(a.sold_at));
+    const currency = (value) => `₡${Number(value).toLocaleString("es-CR")}`;
+    const report = window.SalesReport.build(sold);
+    document.getElementById("salesCount").textContent = sold.length.toLocaleString("es-CR");
+    document.getElementById("salesTotal").textContent = currency(sold.reduce((total, product) => total + Number(product.sale_price || 0), 0));
+    for (const [kind, suffix] of [["week", "Week"], ["fortnight", "Fortnight"], ["month", "Month"]]) {
+      const current = report[kind].current;
+      document.getElementById(`sales${suffix}Total`).textContent = currency(current.total);
+      document.getElementById(`sales${suffix}Label`).textContent = current.label;
+      document.getElementById(`sales${suffix}Count`).textContent = `${current.count} ${current.count === 1 ? "prenda" : "prendas"}`;
+    }
+    const selectedPeriod = document.getElementById("salesPeriodFilter").value;
+    document.getElementById("salesPeriodList").innerHTML = report[selectedPeriod].history.map((period) => `<div class="sales-period-row"><span>${safe(period.label)}</span><span>${period.count} ${period.count === 1 ? "venta" : "ventas"}</span><strong>${currency(period.total)}</strong></div>`).join("");
+    salesList.innerHTML = sold.map((product) => {
+      const firstImage = product.image_urls?.[0] || "img/logo1.jpg";
+      const cover = window.ProductThumbnails?.[product.id];
+      const preview = cover?.source === firstImage ? cover.thumbnail : firstImage;
+      return `<article class="sale-row"><img src="${safe(preview)}" alt="Vista previa de ${safe(product.name)}" loading="lazy" decoding="async"><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")}</p><button type="button" class="sale-detail-link" data-detail="${safe(product.id)}">VER FICHA ↗</button></div><div class="sale-row-amount"><strong>${currency(product.sale_price)}</strong><span>${product.sold_at ? new Date(product.sold_at).toLocaleString("es-CR", { timeZone: "America/Costa_Rica", dateStyle: "medium", timeStyle: "short" }) : "Sin fecha"}</span></div><button type="button" class="secondary sale-restore" data-restore="${safe(product.id)}">REVERTIR</button></article>`;
+    }).join("") || "<p>NO HAY VENTAS REGISTRADAS TODAVÍA.</p>";
+    const cleanup = sold.filter((product) => window.SalePhotos.plan(product).extra.length || product.image_cleanup_pending?.length);
+    const cleanupButton = document.getElementById("cleanupSoldPhotos");
+    cleanupButton.hidden = !cleanup.length;
+    const cleanupHelp = document.getElementById("salePhotoCleanupHelp");
+    cleanupHelp.hidden = !cleanup.length;
+    cleanupHelp.textContent = cleanup.length ? `${cleanup.length} ${cleanup.length === 1 ? "venta tiene" : "ventas tienen"} fotos adicionales o una limpieza pendiente. Conservá solo la primera foto de cada una.` : "";
+  }
+  document.getElementById("salesPeriodFilter").addEventListener("change", renderSales);
   function syncSizeFilterOptions() {
     const sizeFilter = document.getElementById("inventorySizeFilter");
-    const sizes = [...new Set(products.map((product) => product.size?.trim()).filter(Boolean))]
+    const sizes = [...new Set(products.filter((product) => product.status !== "sold").map((product) => product.size?.trim()).filter(Boolean))]
       .sort((first, second) => first.localeCompare(second, "es", { numeric: true }));
     const currentValue = inventoryFilters.size;
     sizeFilter.innerHTML = `<option value="">TODAS LAS TALLAS</option>${sizes.map((size) => `<option value="${safe(size.toLocaleLowerCase())}">${safe(size.toUpperCase())}</option>`).join("")}`;
@@ -408,21 +484,165 @@
   inventory.addEventListener("click", async (event) => {
     const editButton = event.target.closest("[data-edit]");
     if (editButton) { openEditProduct(products.find((product) => product.id === editButton.dataset.edit)); return; }
-    const button = event.target.closest("[data-delete]");
-    if (!button) return;
-    if (!confirm("¿Eliminar esta pieza del inventario?")) return;
-    const { error } = await client
-      .from("products")
-      .delete()
-      .eq("id", button.dataset.delete);
-    if (error) {
-      notice(error.message, "error");
+    const soldButton = event.target.closest("[data-sold]");
+    if (soldButton) {
+      const product = products.find((item) => item.id === soldButton.dataset.sold);
+      if (!product) return;
+      document.getElementById("saleProductId").value = product.id;
+      document.getElementById("saleProductTitle").textContent = product.name;
+      document.getElementById("salePrice").value = product.price;
+      saleDialog.showModal();
       return;
     }
-    notice("Pieza eliminada.");
+    const button = event.target.closest("[data-delete]");
+    if (!button) return;
+    if (!confirm("¿Eliminar definitivamente esta pieza y todas sus fotos? No se registrará como venta.")) return;
+    button.disabled = true;
+    const { data: jobId, error } = await client.rpc("delete_product_for_admin", { p_product_id: button.dataset.delete });
+    if (error) {
+      notice(error.message, "error");
+      button.disabled = false;
+      return;
+    }
     products = products.filter((product) => product.id !== button.dataset.delete);
     renderInventory();
+    await loadDeletionJobs();
+    const jobs = deletionJobs.filter((job) => job.id === jobId);
+    const incomplete = jobs.length ? await cleanupDeletionJobs(jobs) : 1;
+    notice(incomplete ? "Pieza eliminada. Algunas fotos siguen pendientes de borrar; reintentá desde el inventario." : "Pieza y fotos eliminadas.", incomplete ? "error" : "success");
   });
+  const saleDialog = document.getElementById("saleDialog");
+  document.getElementById("closeSaleDialog").addEventListener("click", () => saleDialog.close());
+  saleDialog.addEventListener("click", (event) => { if (event.target === saleDialog) saleDialog.close(); });
+  async function cleanupSalePhotos(product) {
+    const result = await window.SalePhotos.cleanup(client, product, config.url);
+    products = products.map((item) => item.id === product.id ? result.product : item);
+    return result;
+  }
+  async function retainFirstSalePhoto(product) {
+    const { kept, extra } = window.SalePhotos.plan(product);
+    let current = product;
+    if (extra.length) {
+      const pending = [...new Set([...(product.image_cleanup_pending || []), ...extra])];
+      const { data, error } = await client.from("products").update({ image_urls: kept, image_cleanup_pending: pending, updated_at: new Date().toISOString() }).eq("id", product.id).eq("status", "sold").eq("updated_at", product.updated_at).select().single();
+      if (error) throw error;
+      current = data;
+      products = products.map((item) => item.id === product.id ? data : item);
+    }
+    return cleanupSalePhotos(current);
+  }
+  document.getElementById("saleForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const product = products.find((item) => item.id === document.getElementById("saleProductId").value);
+    const salePrice = Number(document.getElementById("salePrice").value);
+    if (!product || !Number.isSafeInteger(salePrice) || salePrice < 0) { notice("Ingresá un monto de venta válido.", "error"); return; }
+    const button = event.currentTarget.querySelector('[type="submit"]');
+    button.disabled = true;
+    try {
+      const { kept, extra } = window.SalePhotos.plan(product);
+      const { data, error } = await client.from("products").update({ status: "sold", sale_origin_status: product.status, sale_price: salePrice, sold_at: new Date().toISOString(), image_urls: kept, image_cleanup_pending: extra, updated_at: new Date().toISOString() }).eq("id", product.id).eq("status", product.status).eq("updated_at", product.updated_at).select().single();
+      if (error) throw error;
+      products = products.map((item) => item.id === product.id ? data : item);
+      saleDialog.close(); renderInventory();
+      try {
+        const result = await cleanupSalePhotos(data);
+        renderInventory();
+        notice(result.remaining ? "Venta registrada con una foto. Quedaron archivos pendientes de borrar; reintentá desde el historial." : "Venta registrada. Se conservó únicamente la primera foto.", result.remaining ? "error" : "success");
+      } catch (cleanupError) { notice("Venta registrada con una foto. No se pudieron borrar todas las demás; reintentá desde el historial.", "error"); }
+    } catch (error) { notice(error.message || "No se pudo registrar la venta.", "error"); }
+    finally { button.disabled = false; }
+  });
+  document.getElementById("cleanupSoldPhotos").addEventListener("click", async (event) => {
+    const candidates = products.filter((product) => product.status === "sold" && (window.SalePhotos.plan(product).extra.length || product.image_cleanup_pending?.length));
+    if (!candidates.length || !confirm(`¿Conservar solo la primera foto en ${candidates.length} ${candidates.length === 1 ? "venta" : "ventas"}? Las fotos adicionales se borrarán definitivamente.`)) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    let incomplete = 0;
+    for (const [index, product] of candidates.entries()) {
+      button.textContent = `LIMPIANDO ${index + 1}/${candidates.length}...`;
+      try { if ((await retainFirstSalePhoto(product)).remaining) incomplete++; }
+      catch (error) { console.error("No se pudieron limpiar las fotos de una venta:", error); incomplete++; }
+    }
+    button.disabled = false;
+    button.textContent = "CONSERVAR SOLO UNA FOTO EN VENTAS";
+    renderInventory();
+    notice(incomplete ? `${candidates.length - incomplete} ventas limpiadas; ${incomplete} pendientes. Reintentá más tarde.` : "Historial actualizado: una foto por prenda vendida.", incomplete ? "error" : "success");
+  });
+  salesList.addEventListener("click", async (event) => {
+    const detailButton = event.target.closest("[data-detail]");
+    if (detailButton) { openSaleDetail(products.find((item) => item.id === detailButton.dataset.detail)); return; }
+    const button = event.target.closest("[data-restore]");
+    if (!button) return;
+    const product = products.find((item) => item.id === button.dataset.restore);
+    if (!product || !confirm(`¿Revertir la venta de ${product.name}? Se descontará del total. Las fotos adicionales que ya se borraron no se podrán recuperar.`)) return;
+    button.disabled = true;
+    let currentProduct = product;
+    if (product.image_cleanup_pending?.length) {
+      try {
+        const result = await cleanupSalePhotos(product);
+        if (result.remaining) { notice("Primero completá la limpieza de fotos pendiente antes de revertir la venta.", "error"); renderInventory(); return; }
+        currentProduct = result.product;
+      } catch (error) { notice("No se pudo completar la limpieza de fotos pendiente.", "error"); button.disabled = false; return; }
+    }
+    const restoreStatus = currentProduct.sale_origin_status === "new_drop" && activeDrop?.id === currentProduct.drop_id && new Date(activeDrop.public_at || activeDrop.release_at) > new Date() ? "new_drop" : "published";
+    const { data, error } = await client.from("products").update({ status: restoreStatus, sale_origin_status: null, sale_price: null, sold_at: null, image_cleanup_pending: [], availability: "available", updated_at: new Date().toISOString() }).eq("id", product.id).eq("status", "sold").eq("updated_at", currentProduct.updated_at).select().single();
+    if (error) { notice(error.message || "No se pudo revertir la venta.", "error"); button.disabled = false; return; }
+    products = products.map((item) => item.id === product.id ? data : item);
+    renderInventory(); notice("Venta revertida.");
+  });
+  const saleDetailDialog = document.getElementById("saleDetailDialog");
+  function openSaleDetail(product) {
+    if (!product || product.status !== "sold") return;
+    const currency = (value) => `₡${Number(value).toLocaleString("es-CR")}`;
+    const facts = document.getElementById("saleDetailFacts");
+    const measures = document.getElementById("saleDetailMeasurements");
+    const addFact = (list, label, value) => {
+      const row = document.createElement("div");
+      const term = document.createElement("dt"), description = document.createElement("dd");
+      term.textContent = label; description.textContent = value;
+      row.append(term, description); list.append(row);
+    };
+    document.getElementById("saleDetailTitle").textContent = product.name;
+    facts.replaceChildren(); measures.replaceChildren();
+    addFact(facts, "MONTO VENDIDO", currency(product.sale_price));
+    addFact(facts, "FECHA DE VENTA", new Date(product.sold_at).toLocaleString("es-CR", { timeZone: "America/Costa_Rica", dateStyle: "long", timeStyle: "short" }));
+    addFact(facts, "PRECIO PUBLICADO", currency(product.price));
+    if (product.original_price) addFact(facts, "PRECIO ANTERIOR", currency(product.original_price));
+    addFact(facts, "CATEGORÍA", product.category || "—");
+    addFact(facts, "TALLA", product.size || "—");
+    addFact(facts, "ESTADO", product.condition || "—");
+    addFact(facts, "PUBLICACIÓN ANTERIOR", product.sale_origin_status === "new_drop" ? "NEW DROP" : "TIENDA PÚBLICA");
+    addFact(facts, "FECHA DE PUBLICACIÓN", product.created_at ? new Date(product.created_at).toLocaleString("es-CR", { timeZone: "America/Costa_Rica", dateStyle: "medium", timeStyle: "short" }) : "—");
+    document.getElementById("saleDetailDescription").textContent = product.description || "Sin descripción registrada.";
+    const knownMeasurements = new Map([["length_cm", "LARGO"], ["chest_width_cm", "ANCHO DE PECHO"], ["sleeve_width_cm", "ANCHO DE MANGA"], ["waist_width_cm", "ANCHO DE CINTURA"], ["inseam_cm", "ANCHO DE PIERNA"], ["height_cm", "ALTO"], ["width_cm", "ANCHO"], ["depth_cm", "FONDO"], ...measurements.fields(product.category)]);
+    for (const [key, label] of knownMeasurements) if (product[key] != null) addFact(measures, label, `${product[key]} cm`);
+    if (!measures.childElementCount) addFact(measures, "MEDIDAS", "Sin medidas registradas.");
+    const images = Array.isArray(product.image_urls) ? product.image_urls.filter(Boolean) : [];
+    const firstImage = images[0] || "img/logo1.jpg";
+    const cover = window.ProductThumbnails?.[product.id];
+    const fallback = cover?.source === firstImage ? cover.thumbnail : "img/logo1.jpg";
+    const main = document.getElementById("saleDetailImage");
+    main.onerror = () => { if (main.src !== new URL(fallback, window.location.href).href) main.src = fallback; };
+    main.src = firstImage; main.alt = product.name;
+    const gallery = document.getElementById("saleDetailGallery");
+    gallery.replaceChildren();
+    gallery.hidden = images.length <= 1;
+    images.forEach((src, index) => {
+      const button = document.createElement("button");
+      button.type = "button"; button.textContent = String(index + 1).padStart(2, "0");
+      button.setAttribute("aria-label", `Ver foto ${index + 1} de ${product.name}`);
+      button.classList.toggle("is-active", index === 0);
+      button.addEventListener("click", () => {
+        main.src = src;
+        gallery.querySelectorAll("button").forEach((item) => item.classList.toggle("is-active", item === button));
+      });
+      gallery.append(button);
+    });
+    saleDetailDialog.showModal();
+  }
+  document.getElementById("closeSaleDetail").addEventListener("click", () => saleDetailDialog.close());
+  document.getElementById("backToSales").addEventListener("click", () => saleDetailDialog.close());
+  saleDetailDialog.addEventListener("click", (event) => { if (event.target === saleDetailDialog) saleDetailDialog.close(); });
   const editDialog = document.getElementById("editProductDialog");
   function openEditProduct(product) {
     if (!product) return;

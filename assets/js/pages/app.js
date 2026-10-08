@@ -27,8 +27,10 @@
   document.querySelectorAll('[data-whatsapp="general"]').forEach((link) => (link.href = whatsappLink()));
   function card(product) {
     const image = product.image_urls?.[0] || "img/logo1.jpg";
+    const cover = window.ProductThumbnails?.[product.id];
+    const cardImage = cover?.source === image ? cover.thumbnail : image;
     const status = product.availability !== "available" ? `<span class="product-availability ${escapeHtml(product.availability)}">${statusLabel(product.availability)}</span>` : "";
-    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async"><span class="product-label">${escapeHtml(categoryNames[product.category] || product.category || "PIEZA")}</span>${status}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
+    return `<article class="product-card" data-id="${product.id}"><div class="product-image"><img src="${escapeHtml(cardImage)}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async"><span class="product-label">${escapeHtml(categoryNames[product.category] || product.category || "PIEZA")}</span>${status}${Number(product.original_price) > Number(product.price) ? priceMarkup(product).match(/<span class="discount-badge">.*?<\/span>/)[0] : ""}</div><div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.size || "TALLA ÚNICA")} · ${escapeHtml(product.condition || "BUEN ESTADO")}</p></div><strong class="product-price">${priceMarkup(product).replace(/<span class="discount-badge">.*?<\/span>/, "")}</strong></div></article>`;
   }
   function render() {
     const visibleProducts = selectedCategory ? products.filter((product) => product.category === selectedCategory) : products;
@@ -106,13 +108,12 @@
       thumb.type = "button";
       thumb.className = `dialog-gallery-item ${index === 0 ? "active" : ""}`;
       thumb.setAttribute("aria-label", `Ver imagen ${index + 1}`);
-      thumb.innerHTML = `<img src="${src}" alt="${escapeHtml(product.name)} ${index + 1}" loading="lazy" decoding="async" />`;
+      thumb.textContent = String(index + 1).padStart(2, "0");
       thumb.addEventListener("click", () => {
         window.ProductImages.setSource(mainImage, src);
         gallery.querySelectorAll(".dialog-gallery-item").forEach((item) => item.classList.toggle("active", item === thumb));
       });
       gallery.appendChild(thumb);
-      window.ProductImages.prepare(gallery);
     });
 
     document.getElementById("dialogCategory").textContent = categoryNames[product.category] || product.category || "PIEZA";

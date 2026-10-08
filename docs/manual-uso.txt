@@ -58,9 +58,18 @@ directamente por WhatsApp.
 
 6. INVENTARIO
 
-Desde el panel puede revisar las piezas activas, editar sus datos y eliminar
-las prendas que ya fueron vendidas. Las prendas apartadas o pendientes de pago
-pueden continuar visibles con su aviso correspondiente.
+Desde el panel puede revisar las piezas activas y editar sus datos. Use
+VENDIDA para registrar el monto recibido: la prenda sale de la tienda y pasa
+al HISTORIAL DE VENTAS, donde se muestra el total bruto acumulado. Use
+ELIMINAR para retirar definitivamente una prenda y sus fotos sin contarla
+como venta. Si falla la limpieza de fotos, el inventario muestra un boton
+para reintentarlo. Las prendas
+apartadas o pendientes de pago continúan visibles con su aviso.
+El historial permite abrir la ficha de cada venta para consultar la primera foto,
+descripcion, talla, medidas y montos. Tambien muestra ingresos brutos por
+semana, quincena y mes, con periodos calculados en la hora de Costa Rica.
+Las otras fotos se borran al vender. Si hubo un error de Storage, el panel
+ofrece reintentar la limpieza; el mismo boton sirve para ventas anteriores.
 
 
 7. RECOMENDACIONES DE SEGURIDAD

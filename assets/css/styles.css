@@ -636,6 +636,8 @@ footer a {
   background: #fff;
   overflow: hidden;
   cursor: pointer;
+  color: var(--black);
+  font: 700 16px var(--condensed);
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 .dialog-gallery-item img {

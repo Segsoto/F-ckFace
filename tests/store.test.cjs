@@ -23,6 +23,20 @@ test('Shop, Admin and NewDrop share the new Supabase project', () => {
   assert.match(fs.readFileSync('index.html', 'utf8'), /href="NewDrop\.html"/);
 });
 
+test('local catalogue covers exist and point to the configured product photos', () => {
+  const context = { window: {} };
+  vm.runInNewContext(fs.readFileSync('assets/js/shared/product-thumbnails.js', 'utf8'), context);
+  const covers = Object.values(context.window.ProductThumbnails);
+  assert.ok(covers.length > 0);
+  for (const cover of covers) {
+    assert.match(cover.source, /^https:\/\/ixkiwzhzcivwqjebuqzt\.supabase\.co\/storage\/v1\/object\/public\/product-images\//);
+    assert.match(cover.thumbnail, /^img\/product-thumbs\/[0-9a-f-]{36}\.webp$/);
+    const image = fs.readFileSync(cover.thumbnail);
+    assert.equal(image.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(image.toString('ascii', 8, 12), 'WEBP');
+  }
+});
+
 test('NewDrop sends published product links to Index instead of showing a public catalog', async () => {
   function element() {
     return {
