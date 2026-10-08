@@ -57,6 +57,7 @@ alter table public.products add column if not exists drop_id uuid references pub
 alter table public.products add column if not exists length_cm numeric(6,2);
 alter table public.products add column if not exists chest_width_cm numeric(6,2);
 alter table public.products add column if not exists sleeve_width_cm numeric(6,2) check (sleeve_width_cm >= 0);
+alter table public.products add column if not exists sleeve_length_cm numeric(6,2) check (sleeve_length_cm >= 0);
 alter table public.products add column if not exists waist_width_cm numeric(6,2) check (waist_width_cm >= 0);
 alter table public.products add column if not exists inseam_cm numeric(6,2) check (inseam_cm >= 0);
 alter table public.products add column if not exists height_cm numeric(6,2) check (height_cm >= 0);
