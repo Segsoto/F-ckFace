@@ -273,22 +273,7 @@
 
     window.ProductImages.setSource(mainImage, images[0]);
     mainImage.alt = product.name;
-    gallery.innerHTML = "";
-
-    images.forEach((src, index) => {
-      const thumb = document.createElement("button");
-      thumb.type = "button";
-      thumb.className = `dialog-gallery-item ${index === 0 ? "active" : ""}`;
-      thumb.setAttribute("aria-label", `Ver imagen ${index + 1}`);
-      thumb.textContent = String(index + 1).padStart(2, "0");
-      thumb.addEventListener("click", () => {
-        window.ProductImages.setSource(mainImage, src);
-        gallery.querySelectorAll(".dialog-gallery-item").forEach((item) => item.classList.toggle("active", item === thumb));
-      });
-      gallery.appendChild(thumb);
-    });
-
-    gallery.style.display = images.length > 1 ? "flex" : "none";
+    window.ProductImages.renderGallery(gallery, mainImage, product, images);
     const unavailable = product.availability !== "available", notice = document.getElementById("availabilityNotice"); notice.hidden = !unavailable; notice.textContent = unavailable ? `ESTA PRENDA ESTÁ ${statusLabel(product.availability)}. ESPERÁ A QUE SE LIBERE PARA PODER INTENTAR COMPRARLA.` : "";
     whatsappButton.href = whatsappLink(product); whatsappButton.dataset.availability = product.availability || "available"; dialog.showModal();
   }

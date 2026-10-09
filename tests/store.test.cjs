@@ -30,10 +30,17 @@ test('local catalogue covers exist and point to the configured product photos', 
   assert.ok(covers.length > 0);
   for (const cover of covers) {
     assert.match(cover.source, /^https:\/\/ixkiwzhzcivwqjebuqzt\.supabase\.co\/storage\/v1\/object\/public\/product-images\//);
-    assert.match(cover.thumbnail, /^img\/product-thumbs\/[0-9a-f-]{36}\.webp$/);
+    assert.match(cover.thumbnail, /^img\/product-thumbs\/[0-9a-f-]{36}(?:-[0-9a-f]{20}-cover)?\.webp$/);
     const image = fs.readFileSync(cover.thumbnail);
     assert.equal(image.toString('ascii', 0, 4), 'RIFF');
     assert.equal(image.toString('ascii', 8, 12), 'WEBP');
+    for (const preview of cover.gallery || []) {
+      assert.match(preview.source, /^https:\/\/ixkiwzhzcivwqjebuqzt\.supabase\.co\/storage\/v1\/object\/public\/product-images\//);
+      assert.match(preview.thumbnail, /^img\/product-thumbs\/[0-9a-f-]{36}-[0-9a-f]{20}\.webp$/);
+      const data = fs.readFileSync(preview.thumbnail);
+      assert.equal(data.toString('ascii', 0, 4), 'RIFF');
+      assert.equal(data.toString('ascii', 8, 12), 'WEBP');
+    }
   }
 });
 
@@ -61,7 +68,7 @@ test('NewDrop sends published product links to Index instead of showing a public
     window: {
       location: { href: 'https://store.example/NewDrop.html?prenda=released', search: '?prenda=released', replace(url) { redirectedTo = url; } },
       FUCK_FACE_CONFIG: { url: 'new', anonKey: 'public' }, supabase: { createClient: () => client },
-      ProductImages: { prepare() {}, setSource() {} }, ProductMeasurements: { display() {} },
+      ProductImages: { prepare() {}, setSource() {}, renderGallery() {} }, ProductMeasurements: { display() {} },
     },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     clearInterval() {}, setInterval() { throw new Error('No countdown for released drop'); },
@@ -102,7 +109,7 @@ test('NewDrop shows password field before opening without exposing exclusive pro
     window: {
       location: { href: 'https://store.example/NewDrop.html', search: '' },
       FUCK_FACE_CONFIG: { url: 'new', anonKey: 'public' }, supabase: { createClient: () => client },
-      ProductImages: { prepare() {}, setSource() {} }, ProductMeasurements: { display() {} },
+      ProductImages: { prepare() {}, setSource() {}, renderGallery() {} }, ProductMeasurements: { display() {} },
     },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     clearInterval() {}, setInterval(callback) { tick = callback; return 1; },
@@ -157,7 +164,7 @@ for (const deepLink of [false, true]) for (const previewMode of [false, true]) t
   } };
   vm.runInNewContext(fs.readFileSync('assets/js/pages/newdrop.js','utf8'), {
     document, console, URL, URLSearchParams, Intl, Date,
-    window: { location: { href: 'https://store.example/NewDrop.html?preview=admin&password=secret', search: `?${previewMode ? 'preview=admin&' : ''}${deepLink ? 'prenda=1' : ''}` }, DropPreview: { async load() { return { drop: { id: 'future' }, products }; }, async products() { return products; } }, FUCK_FACE_CONFIG: { url: 'test', anonKey: 'test' }, supabase: { createClient: () => client }, ProductImages: { prepare() {}, setSource() {} }, ProductMeasurements: { display() {} } },
+    window: { location: { href: 'https://store.example/NewDrop.html?preview=admin&password=secret', search: `?${previewMode ? 'preview=admin&' : ''}${deepLink ? 'prenda=1' : ''}` }, DropPreview: { async load() { return { drop: { id: 'future' }, products }; }, async products() { return products; } }, FUCK_FACE_CONFIG: { url: 'test', anonKey: 'test' }, supabase: { createClient: () => client }, ProductImages: { prepare() {}, setSource() {}, renderGallery() {} }, ProductMeasurements: { display() {} } },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     clearInterval() {}, setInterval(callback) { tick = callback; return 1; },
   });
