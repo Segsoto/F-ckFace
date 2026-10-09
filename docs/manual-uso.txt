@@ -1,84 +1,197 @@
 MANUAL DE USO - F-CK FACE
-=========================
+========================
+Actualizado: 2026-10-08, hora de Costa Rica.
+Documentación técnica y registro de cambios: docs/documentacion-proyecto.txt.
+Este manual no debe contener contraseñas ni claves administrativas.
 
-1. ACCESO AL PANEL DE ADMINISTRACION
+1. ACCESO Y CIERRE DE SESIÓN
+---------------------------
+1. Abrir el sitio con /admin.html al final de la dirección.
+2. Ingresar el correo y la contraseña asignados mediante Supabase Auth.
+3. La cuenta también debe estar autorizada en admin_profiles.
+4. Si inicia sesión pero no entra al panel, solicitar revisión de esa autorización.
+5. Usar CERRAR SESIÓN al terminar, especialmente en equipos compartidos.
+6. El botón del ojo permite mostrar u ocultar una contraseña en pantalla.
 
-1. Abra la direccion del sitio y agregue /admin.html al final.
-2. Ingrese con el correo y la contrasena registrados en Supabase.
-3. El usuario administrador autorizado actualmente es:
-   f-ck@face.com y la contraseña es Fuckface2026
+Los accesos se crean o modifican en Supabase, no desde este manual ni desde el panel.
+Entregar credenciales por el canal privado acordado con el administrador.
+La contraseña comunitaria de un drop es independiente de la contraseña del panel.
 
-4. Para cerrar la sesion, use el boton CERRAR SESION.
+2. MÓDULOS DEL PANEL
+-------------------
+- Programación: crear, editar, desactivar y revisar el drop activo.
+- Publicación: agregar prendas al New Drop o directamente a la tienda pública.
+- Inventario: buscar, filtrar, editar, cambiar disponibilidad, vender o eliminar.
+- Historial: consultar ventas, ingresos brutos, fichas y reversiones.
 
-IMPORTANTE: El usuario y contraseña tiene que ser exactamente igual al brindado tanto aca por el correo
+3. PROGRAMAR UN DROP
+-------------------
+1. Completar el nombre del drop.
+2. Elegir fecha y hora de APERTURA EXCLUSIVA, futura al crear el drop.
+3. Elegir APERTURA PÚBLICA, posterior a la exclusiva.
+4. Escribir la contraseña de acceso para la comunidad.
+5. Agregar una nota si se necesita.
+6. Presionar PROGRAMAR DROP y comprobar el aviso y las fechas guardadas.
 
+Solo se gestiona un drop activo a la vez. Las fechas del formulario usan la hora
+local del navegador; confirmar que el dispositivo esté en la zona horaria esperada.
 
-2. PROGRAMAR UN NEW DROP
+4. EDITAR, DESACTIVAR Y CONSULTAR LA CONTRASEÑA
+---------------------------------------------
+1. El drop activo se carga en el formulario automáticamente.
+2. Cambiar nombre, fechas, nota o contraseña y usar GUARDAR CAMBIOS.
+3. Dejar la contraseña vacía conserva la contraseña existente.
+4. CONTRASEÑA GUARDADA permite consultarla con el ojo, solo al administrador.
+5. Una contraseña anterior sin copia consultable debe introducirse y guardarse de
+   nuevo para que el panel pueda mostrarla posteriormente.
+6. DESACTIVAR DROP cierra ese acceso e impide su publicación automática.
 
-Desde el panel, en la seccion PROXIMO DROP:
+Desactivar no borra sus prendas ni las transfiere a otro drop. Consultar con soporte
+si se necesita reorganizar esas prendas; no asumir que entrarán al siguiente drop.
 
-1. Seleccione la fecha y hora de APERTURA EXCLUSIVA.
-2. Seleccione la fecha y hora de APERTURA PUBLICA.
-3. Escriba la contrasena que se compartira con la comunidad.
-4. Agregue una nota opcional sobre el drop.
-5. Presione PROGRAMAR DROP.
+5. VISTA PREVIA ANTES DE LA APERTURA
+----------------------------------
+1. Iniciar sesión en el panel y comprobar que hay un drop activo.
+2. Abrir VISTA PREVIA DEL DROP en el mismo navegador y dominio.
+3. Revisar categorías, precios, tallas, medidas, descripciones y fotografías.
 
-La apertura exclusiva ocurre primero. La apertura publica debe ser posterior.
-Solo puede existir un drop activo a la vez.
+La vista previa requiere permisos administrativos. No publica prendas, no cambia
+las fechas y no usa la contraseña de la comunidad. No compartirla como acceso de
+clientes: una URL con preview=admin no concede permisos de administrador.
 
+6. AGREGAR UNA PRENDA
+--------------------
+1. Completar nombre, precio en colones, categoría y talla.
+2. Agregar condición, descripción y medidas opcionales en centímetros.
+3. Elegir el destino de publicación:
+   NEW DROP: requiere un drop activo y asocia la prenda a él.
+   TIENDA PÚBLICA: publica directamente, sin esperar al próximo drop.
+4. Seleccionar entre una y siete fotos JPG, PNG o WebP, hasta 10 MiB por archivo.
+5. Presionar el botón de alta y esperar la compresión y subida.
+6. Comprobar el mensaje final y la presencia de la prenda en inventario.
 
-3. AGREGAR UNA PRENDA
+La primera foto es la portada. Al registrar una venta será la foto conservada.
+El panel comprime antes de subir: máximo 300000 bytes por foto y lado mayor de
+1600 píxeles, manteniendo proporciones. Las fotos ya pequeñas pueden conservarse.
+HEIC debe exportarse a JPG antes de seleccionarse. Un error de compresión impide
+la carga; elegir otra versión del archivo en lugar de subir el original pesado.
+El mensaje final informa el peso de las fotos y el ahorro cuando corresponda.
+El botón puede conservar el texto AGREGAR A NEW DROP aunque se elija destino
+público: comprobar el destino seleccionado y el mensaje de guardado.
 
-En la seccion ADD TO NEW DROP:
+7. MEDIDAS POR CATEGORÍA
+-----------------------
+- Jackets: largo, ancho de pecho, ancho de manga y largo de mangas.
+- Pantalones: largo total, ancho de cintura en plano y ancho de pierna.
+- Bolsos/mochilas: alto, ancho y fondo.
+- Otras categorías: largo y ancho de pecho.
 
-1. Complete nombre, precio, categoria y talla.
-2. Agregue las medidas y el estado de la prenda cuando corresponda.
-3. Escriba una descripcion opcional.
-4. Seleccione las fotos de la prenda.
-5. Presione AGREGAR A NEW DROP.
+Las medidas son opcionales. El editor conserva medidas anteriores cuando existen.
+El campo interno inseam_cm se rotula ANCHO DE PIERNA; ese rótulo no convierte
+mediciones históricas. Si hay datos anteriores de entrepierna, revisar su significado
+antes de corregirlos. No sustituir automáticamente unos valores por otros.
 
-La prenda queda visible durante el acceso exclusivo. Al llegar la fecha publica,
-aparece automaticamente en la tienda general.
+8. ACCESO DE CLIENTES Y APERTURA PÚBLICA
+--------------------------------------
+1. Compartir la dirección del sitio terminada en /NewDrop.html.
+2. Compartir únicamente la contraseña comunitaria al iniciar la apertura exclusiva.
+3. Los clientes ingresan y pueden buscar, filtrar por categoría/talla y abrir prendas.
+4. Al llegar la fecha pública, las prendas del drop pasan a la tienda general cuando
+   el sitio ejecuta la comprobación de publicación.
 
+La comprobación ocurre al cargar las páginas normales y al vencer el contador de
+New Drop. Si nadie visita el sitio en ese momento, puede ocurrir en la siguiente
+carga. Para una publicación puntual sin visitas se necesita una tarea programada
+adicional; no está configurada en los archivos revisados.
+La vista previa administrativa de New Drop no ejecuta la publicación.
 
-4. ACCESO DE LOS CLIENTES
+9. PREVISUALIZACIONES Y MANTENIMIENTO DE IMÁGENES
+----------------------------------------------
+El detalle muestra miniaturas de las diferentes fotos; seleccionar una cambia la
+foto grande. La miniatura seleccionada se distingue por su borde.
 
-1. Comparta con la comunidad la direccion NewDrop.html.
-2. Comparta la contrasena del drop cuando inicie la apertura exclusiva.
-3. Los clientes ingresan la contrasena y consultan las prendas disponibles.
-4. Despues de la apertura publica, las prendas aparecen en la tienda principal.
+Las miniaturas locales del catálogo público son WebP pequeñas y se preparan fuera
+del servidor. Al añadir o cambiar fotos de prendas públicas, el encargado técnico
+debe ejecutar desde la carpeta del proyecto:
+  python tools/build-product-thumbnails.py
+Después debe publicar las imágenes de img/product-thumbs/ y el mapa JavaScript
+generado junto con la web. El comando necesita Python y Pillow.
 
+Sin miniaturas locales, incluidas prendas todavía exclusivas, el sitio usa las fotos
+originales con carga diferida. Esto permite verlas, pero puede transferir más bytes.
+El generador no publica archivos automáticamente ni cambia productos en la base.
 
-5. CONSULTAS Y VENTAS
+10. INVENTARIO, EDICIÓN Y DISPONIBILIDAD
+--------------------------------------
+1. Usar búsqueda o filtros de talla, categoría, precio y descuento.
+2. LIMPIAR FILTROS recupera la lista de prendas activas.
+3. EDITAR permite corregir datos, precio y medidas; guardar los cambios al terminar.
+4. Al bajar el precio se conserva el precio anterior para mostrar la rebaja.
+5. QUITAR DESCUENTO se aplica al guardar la edición.
+6. Elegir DISPONIBLE, APARTADA o EN PROCESO según la situación de la prenda.
 
-El cliente puede abrir una prenda y presionar CONSULTAR POR WHATSAPP.
-La consulta se envia con el nombre y precio de la pieza. La venta se coordina
-directamente por WhatsApp.
+Apartada/en proceso sigue visible con su aviso; su ficha bloquea la consulta de
+compra hasta que vuelva a estar disponible. Cambiar esa disponibilidad no registra
+una venta ni mueve la prenda entre New Drop y tienda pública.
+El editor actual no permite reemplazar fotos o trasladar la prenda a otro drop.
 
+11. CONSULTAS POR WHATSAPP
+-------------------------
+El cliente abre la prenda y usa CONSULTAR POR WHATSAPP. Se precarga un mensaje
+con nombre, precio y enlace al detalle; el cliente realiza el envío en WhatsApp.
+La venta se coordina directamente. El enlace no reserva ni cobra automáticamente.
+No se adjuntan fotos como archivos. El enlace de un producto exclusivo requiere
+contraseña comunitaria; si ya se publicó, redirige a la tienda general.
 
-6. INVENTARIO
+12. REGISTRAR VENTAS Y CONSULTAR INGRESOS
+---------------------------------------
+1. En inventario, usar VENDIDA para la prenda correspondiente.
+2. Revisar e ingresar el monto efectivamente recibido en colones enteros.
+3. Guardar y comprobar que aparece en HISTORIAL DE VENTAS.
+4. Usar VER FICHA para foto principal, descripción, talla, medidas, importes y fechas.
+5. Consultar resúmenes de esta semana, quincena y mes o el desglose por períodos.
 
-Desde el panel puede revisar las piezas activas y editar sus datos. Use
-VENDIDA para registrar el monto recibido: la prenda sale de la tienda y pasa
-al HISTORIAL DE VENTAS, donde se muestra el total bruto acumulado. Use
-ELIMINAR para retirar definitivamente una prenda y sus fotos sin contarla
-como venta. Si falla la limpieza de fotos, el inventario muestra un boton
-para reintentarlo. Las prendas
-apartadas o pendientes de pago continúan visibles con su aviso.
-El historial permite abrir la ficha de cada venta para consultar la primera foto,
-descripcion, talla, medidas y montos. Tambien muestra ingresos brutos por
-semana, quincena y mes, con periodos calculados en la hora de Costa Rica.
-Las otras fotos se borran al vender. Si hubo un error de Storage, el panel
-ofrece reintentar la limpieza; el mismo boton sirve para ventas anteriores.
+Los importes son ingresos brutos, sin deducir costos. Los períodos se calculan en
+hora de Costa Rica: semanas lunes-domingo, quincenas 1-15 y 16-fin, y meses.
+Al vender se conserva la primera foto y se eliminan las adicionales. Una limpieza
+fallida no cancela una venta registrada: comprobar historial y pendientes.
 
+13. REVERTIR UNA VENTA
+---------------------
+1. En historial, usar REVERTIR y revisar la confirmación.
+2. Si quedan fotos pendientes de limpieza, completar primero esa limpieza.
+3. Comprobar que la prenda vuelve al inventario y se descuentan sus ingresos.
 
-7. RECOMENDACIONES DE SEGURIDAD
+Vuelve a New Drop solo si su drop original sigue activo y no abrió al público;
+en otro caso vuelve a la tienda pública, con disponibilidad DISPONIBLE.
+Revertir no recupera fotos adicionales que ya se borraron.
 
-- POR NADA DEL MUNDO comparta la contrasena del panel de administracion.
-- La contrasena del New Drop es independiente de la cuenta del administrador.
+14. ELIMINAR PRENDAS Y REINTENTAR LIMPIEZA
+----------------------------------------
+- ELIMINAR retira la prenda y sus fotos sin registrarla como venta.
+- Es una operación definitiva; confirmar solo después de revisar la pieza.
+- Si Storage falla, el panel conserva las URLs pendientes para reintentar.
+- REINTENTAR LIMPIEZA DE FOTOS procesa eliminaciones/cargas pendientes.
+- CONSERVAR SOLO UNA FOTO EN VENTAS limpia fotos extra de ventas anteriores y
+  reintenta sus pendientes, conservando la primera foto.
+- Las cargas incompletas se ofrecen para reintento después de una hora.
 
+Si falla, revisar el mensaje y avisar al encargado técnico. No borrar datos de
+Storage con SQL ni ejecutar herramientas de limpieza histórica sin verificar el
+proyecto. Esas herramientas apuntan a un proyecto anterior, no al actual.
 
-SOPORTE TECNICO
----------------
-Si hay problemas llamar inmediatamente al 
-+506 89168397
+15. MANTENIMIENTO Y REGISTRO DE CAMBIOS
+-------------------------------------
+Toda modificación técnica debe anotarse en docs/documentacion-proyecto.txt:
+fecha, solicitud, archivos, pasos, resultado, pruebas, pendientes y publicación.
+Actualizar este manual si cambia una operación del panel.
+Consultar README.md y docs/calidad.md para instalación y verificación técnica.
+Los cambios en archivos locales no implican que estén publicados en el sitio.
+
+16. SOPORTE
+-----------
+Informar pantalla, operación, mensaje de error y momento del problema.
+No enviar contraseñas, claves privadas ni capturas que las muestren.
+El contacto comercial de WhatsApp está configurado en config.js.
+El responsable técnico debe consultar la documentación central antes de modificar
+datos, configuración, herramientas o módulos.

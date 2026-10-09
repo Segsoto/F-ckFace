@@ -19,6 +19,8 @@ La tienda está pensada para vender mediante *drops*:
 
 ## Estructura del proyecto
 
+La referencia de mantenimiento y la bitácora están en [docs/documentacion-proyecto.txt](docs/documentacion-proyecto.txt): arquitectura, módulos, funcionalidades, datos, herramientas, pruebas, procedimientos y registro de modificaciones. Cada cambio debe actualizar las secciones afectadas y añadir una entrada con pasos, verificación y estado de publicación, siguiendo [AGENTS.md](AGENTS.md). El manual del panel está en [docs/manual-uso.txt](docs/manual-uso.txt); no debe contener credenciales.
+
 El JavaScript se separa en `assets/js/pages/` y `assets/js/shared/`; los estilos están en `assets/css/`. Las páginas conservan sus rutas de acceso. Las pautas de mantenimiento y verificación están en [docs/calidad.md](docs/calidad.md). Ejecutar `npm test` con Node.js 22 o superior para revisar rutas y regresiones de New Drop, sin instalar dependencias.
 
 En New Drop, al ingresar con la contraseña, los filtros muestran las categorías que tienen prendas y su cantidad. **Todas** recupera el catálogo completo. El contador mantiene abierto el catálogo durante el acceso autorizado.
@@ -49,8 +51,8 @@ En New Drop, al ingresar con la contraseña, los filtros muestran las categoría
 - Crear el usuario administrador desde **Authentication → Users** y autorizarlo únicamente en `admin_profiles`.
 - Activar MFA para cada cuenta administradora y usar una contraseña única, larga y no reutilizada.
 - Configurar en el hosting una regla de headers para `admin.html` con `Cache-Control: no-store` y mantener `404.html` como página de error.
-- Reemplazar las URLs relativas de `canonical`, Open Graph y JSON-LD por la URL absoluta del dominio publicado.
-- Crear `sitemap.xml` con esa misma URL absoluta y añadirla como `Sitemap:` en `robots.txt`.
+- Verificar que `canonical`, Open Graph y JSON-LD correspondan al dominio publicado; el repositorio usa `https://www.fuck-face.com/`.
+- Mantener `sitemap.xml` y su referencia `Sitemap:` en `robots.txt` con ese mismo dominio.
 
 La URL de `admin.html` no necesita ocultarse: una URL estática puede descubrirse. El acceso se protege en el servidor mediante Supabase Auth, RLS y la pertenencia a `admin_profiles`; nunca mediante una contraseña JavaScript.
 
@@ -117,7 +119,7 @@ Solo hay un drop activo. Una vez que se abre al público, se puede crear el sigu
 
 ### Editar un drop y consultar su contraseña
 
-### Revisar antes de la apertura
+#### Revisar antes de la apertura
 
 Iniciá sesión con tu correo y contraseña de administrador en `admin.html` y elegí **VISTA PREVIA DEL DROP**. Se abre `NewDrop.html?preview=admin` en otra pestaña del mismo navegador y dominio. Permite revisar categorías, fotos, precios y detalles antes de la apertura exclusiva. Si no hay sesión autorizada, pide entrar al panel.
 
@@ -144,10 +146,11 @@ publicar los archivos web. Las instalaciones nuevas usan `supabase-schema.sql` c
 ### Añadir una prenda
 
 1. Completar nombre, precio, categoría, talla, largo y ancho de pecho cuando apliquen.
-2. Seleccionar de una a siete fotos JPG, PNG o WebP, de máximo 10 MB por archivo.
-3. Presionar **Agregar a New Drop**.
+2. Elegir destino **New Drop** (requiere drop activo) o **Tienda pública** (publicación directa).
+3. Seleccionar de una a siete fotos JPG, PNG o WebP, de máximo 10 MiB por archivo.
+4. Presionar el botón de alta y comprobar el destino indicado en el mensaje final.
 
-La pieza se sube a Supabase Storage y se registra con estado `new_drop`. No aparece aún en el catálogo general; solo se revela mediante `NewDrop.html` durante la ventana exclusiva.
+La pieza se sube a Supabase Storage. El destino New Drop la registra con estado `new_drop` y la vincula al drop activo; se revela mediante `NewDrop.html` durante la ventana exclusiva. El destino Tienda pública la registra con estado `published` y sin drop asociado, disponible directamente en el catálogo general.
 
 El panel comprime las fotos en el navegador **antes de subirlas**: máximo 300 KB por foto y 1600 píxeles en el lado mayor, sin recortar ni ampliar. Prefiere WebP y usa JPEG si el navegador no puede generar WebP. Las fotos que ya son pequeñas se conservan sin recompresión. Procesa una foto a la vez, muestra el progreso y al terminar informa el peso almacenado y el ahorro. Si no puede leer o comprimir una foto, detiene la preparación; no sube el original pesado. Los archivos HEIC deben exportarse a JPG.
 
@@ -161,7 +164,7 @@ La función PostgreSQL `release_due_drops()` revisa si la fecha pública del dro
 - Desactiva ese drop.
 - El frontend vuelve a leer los datos y el catálogo muestra las prendas dentro de su categoría.
 
-La función se invoca al cargar la tienda, al cargar el panel y cuando el contador visible llega a cero. En condiciones normales, con la tienda abierta, el cambio es inmediato. Si no hay ningún visitante ni administrador conectado exactamente al momento de lanzamiento, se ejecutará en la siguiente visita/carga de la página.
+La función se invoca al cargar la tienda, al cargar el panel y cuando el contador de New Drop llega a la apertura pública. El contador de `index.html` actualiza su texto, pero no recarga por sí mismo el catálogo al vencer. Si no hay una página que ejecute la comprobación al momento del lanzamiento, se publicará en la siguiente visita/carga. La vista previa administrativa de New Drop no ejecuta esa publicación.
 
 ### Para ejecución estricta sin visitas
 
@@ -185,7 +188,9 @@ Si el negocio necesita que el movimiento ocurra aun cuando nadie abra el sitio, 
 | `drop_id` | Drop al que pertenece la prenda. |
 | `length_cm`, `chest_width_cm` | Largo y ancho de pecho, en centímetros. |
 | `availability` | `available`, `reserved` o `payment_pending`. |
-| `status` | `new_drop` o `published`. |
+| `status` | `new_drop`, `published` o `sold`. |
+| `sale_price`, `sold_at`, `sale_origin_status` | Monto, fecha y estado anterior de una venta; se limpian al revertir. |
+| `image_cleanup_pending` | URLs pendientes de limpieza de fotos de una venta. |
 | `created_at`, `updated_at` | Fechas de control. |
 
 ### `drops`
@@ -194,7 +199,7 @@ Si el negocio necesita que el movimiento ocurra aun cuando nadie abra el sitio, 
 | --- | --- |
 | `exclusive_at` | Fecha/hora UTC de apertura para la comunidad. |
 | `public_at` | Fecha/hora UTC de apertura para toda la tienda. |
-| `access_password_hash` | Hash de contraseña; nunca la contraseña en texto plano. |
+| `access_password_hash` | Hash utilizado para validar el acceso exclusivo. La copia consultable por administradores se guarda por separado en `drop_passwords`, protegida con RLS. |
 | `description` | Texto de apoyo para la sección New Drop. |
 | `is_active` | Indica cuál es el próximo drop. |
 
@@ -259,6 +264,8 @@ Antes de publicar cambios, comprobar que:
 
 ## Medidas por categoría
 
-El alta y la edición usan `assets/js/shared/measurements.js`: pantalones tienen largo total, ancho de cintura en plano y entrepierna; bolsos/mochilas tienen alto, ancho y fondo; las demás categorías conservan largo y ancho de pecho. Todas las medidas son opcionales y se expresan en centímetros. Bolsos conserva el identificador `mochilas` para mantener los filtros y productos existentes.
+El alta y la edición usan `assets/js/shared/measurements.js`: pantalones tienen largo total, ancho de cintura en plano y el campo histórico `inseam_cm`, rotulado **ANCHO DE PIERNA**; bolsos/mochilas tienen alto, ancho y fondo; jackets incluyen largo, ancho de pecho, ancho de manga y largo de mangas. Las demás categorías usan largo y ancho de pecho. Todas las medidas son opcionales y se expresan en centímetros. El cambio de etiqueta de `inseam_cm` no convierte valores históricos de entrepierna. Bolsos conserva el identificador `mochilas` para mantener los filtros y productos existentes.
 
 Para otra instalación existente, ejecutar `supabase/migrations/20260912033744_category_measurements.sql` antes de publicar el frontend. Solo añade columnas; no actualiza ni elimina piezas. Las medidas históricas conservan su significado y siguen disponibles al editar y consultar la pieza. No se convierten medidas de pecho en cintura automáticamente.
+
+`sleeve-length.sql` añade `sleeve_length_cm` a una instalación que todavía no tenga esa columna. Revisar primero el esquema existente; `supabase-schema.sql` ya incluye esas ampliaciones para una instalación completa. Las tablas, RPC y procedimientos de actualización se detallan en la documentación central; disponer del script en Git no confirma que se haya aplicado en producción.

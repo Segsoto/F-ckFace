@@ -1,0 +1,988 @@
+F-CK FACE - DOCUMENTACIÓN CENTRAL Y BITÁCORA DE MODIFICACIONES
+============================================================
+
+Fecha de creación: 2026-10-08, America/Costa_Rica.
+Base revisada al crear el documento: commit 174fae1.
+Alcance: código y archivos disponibles en este repositorio.
+Los datos de producción, permisos reales, hosting y migraciones aplicadas necesitan
+comprobación independiente. Este inventario no certifica su estado en producción.
+Formato: texto UTF-8. Mantener los títulos numerados para facilitar búsquedas.
+
+ÍNDICE
+------
+01. Cómo mantener este documento
+02. Qué hace el proyecto y arquitectura
+03. Configuración y dependencias
+04. Mapa de carpetas y archivos
+05. Tienda pública
+06. New Drop y vista previa administrativa
+07. Administración: módulos y operaciones
+08. Módulos JavaScript compartidos
+09. Modelo de datos y estados
+10. Funciones SQL, autorización y Storage
+11. Scripts SQL e instalación
+12. Imágenes, compresión, miniaturas y caché
+13. Herramientas de mantenimiento
+14. Pruebas y verificación
+15. Desarrollo local, publicación y reversión
+16. Recetas para futuras modificaciones
+17. Diagnóstico y limitaciones conocidas
+18. Documentos complementarios y aplicación separada
+19. Bitácora de modificaciones
+20. Plantilla de nueva entrada
+
+
+01. CÓMO MANTENER ESTE DOCUMENTO
+------------------------------
+Este archivo es la referencia central para entender y modificar F-ck Face.
+AGENTS.md establece la obligación de actualizarlo en futuras tareas de Codex.
+
+En cada cambio:
+1. Leer este documento, docs/calidad.md y el código afectado.
+2. Revisar git status y separar los cambios existentes del trabajo solicitado.
+3. Definir qué comportamiento cambia y qué pantallas, módulos y datos intervienen.
+4. Realizar la modificación y las comprobaciones pertinentes.
+5. Actualizar la descripción del sistema en las secciones afectadas.
+6. Añadir una entrada fechada a la sección 19 usando la plantilla de la sección 20.
+7. Actualizar docs/manual-uso.txt si cambia la operación del panel.
+8. Actualizar README.md si cambia la configuración, instalación o mantenimiento.
+9. Revisar el diff y registrar el estado real de publicación y pendientes.
+
+Escribir qué se hizo, por qué, dónde, cómo se verificó y qué falta. Los intentos
+fallidos relevantes se registran con su resultado, sin presentarlos como éxitos.
+No borrar entradas anteriores ni convertir pendientes en tareas completadas sin
+evidencia. No inventar una cronología de modificaciones antiguas.
+Registrar fechas en Costa Rica; los datos técnicos UTC deben identificarse como UTC.
+No almacenar contraseñas, tokens, service_role, claves privadas o datos de clientes.
+Los ejemplos deben usar marcadores como <UUID_ADMIN> y <DOMINIO>.
+Un commit prueba que el cambio está en Git, no que se haya publicado.
+
+
+02. QUÉ HACE EL PROYECTO Y ARQUITECTURA
+-------------------------------------
+Catálogo de prendas con acceso anticipado mediante drops. Las consultas se coordinan
+por WhatsApp. El sitio no implementa carrito, cobro en línea, envío de correos ni
+cuentas para compradores.
+
+Capas:
+- HTML: estructura de la tienda, acceso exclusivo, panel y página de error.
+- CSS: presentación y adaptación a tamaños de pantalla.
+- JavaScript de página: eventos, lectura de datos y actualización de la interfaz.
+- JavaScript compartido: medidas, imágenes, compresión, ventas y auxiliares.
+- Supabase Auth: inicio de sesión de administradores.
+- Supabase PostgreSQL: productos, drops, autorización y colas de limpieza.
+- Supabase Storage: fotos originales o comprimidas de las prendas.
+- Hosting estático: HTML, CSS, JavaScript, imágenes locales y videos.
+- Herramientas locales: servidor de desarrollo, miniaturas y limpieza histórica.
+
+Flujo público:
+Visita -> app.js -> RPC de catálogo -> productos publicados -> tarjetas ->
+RPC de verificación del producto -> detalle y miniaturas -> consulta por WhatsApp.
+
+Flujo exclusivo:
+NewDrop.html -> metadatos del drop -> contraseña -> RPC que valida horario y hash ->
+productos new_drop del drop autorizado -> filtros, detalle y WhatsApp.
+
+Flujo administrativo:
+Auth -> comprobación en admin_profiles -> lectura/escritura con RLS -> inventario,
+programación, publicación, venta e historial -> Storage API para las fotos.
+
+El navegador usa el SDK Supabase directamente. No hay un backend Node propio en
+producción ni un proceso de compilación de la web. El servidor Node de tools/ es
+solo una herramienta local para servir archivos.
+
+
+03. CONFIGURACIÓN Y DEPENDENCIAS
+-------------------------------
+Configuración principal: config.js, objeto window.FUCK_FACE_CONFIG.
+- url: URL del proyecto Supabase.
+- anonKey: clave pública usada por el SDK y las consultas públicas.
+- whatsappNumber: número internacional sin +, espacios ni separadores.
+
+Referencia observada el 2026-10-08:
+- Proyecto principal: ixkiwzhzcivwqjebuqzt.
+- Dominio en canonical, Open Graph y sitemap: https://www.fuck-face.com/.
+- La herramienta histórica de limpieza usa zfyotvnrvfbegfrmjygo.
+- Camisadel10/config.js usa uuzcnutnqiliwjiwtepw, una aplicación distinta.
+Estos identificadores son contexto técnico; no son credenciales.
+
+Dependencias:
+- Navegador moderno con dialog, URL, Intl y APIs de imágenes/canvas.
+- Supabase JS: páginas HTML cargan @supabase/supabase-js@2 desde jsDelivr.
+  La referencia usa la versión mayor, no una versión exacta bloqueada.
+- Google Fonts: tipografías cargadas desde su servicio externo.
+- Imágenes de categorías: recursos externos de Unsplash en la tienda/New Drop.
+- Node.js 22 o superior: npm run dev, npm test y limpieza histórica.
+- Python 3 y Pillow: generador de miniaturas y sus pruebas.
+- Sin dependencias npm instalables, lockfile ni comando npm run build actualmente.
+
+Comandos desde la raíz:
+  npm run dev
+  npm test
+  python tools/build-product-thumbnails.py
+  python tests/product-thumbnails.test.py
+
+Si falta Pillow, instalarlo en el entorno Python elegido:
+  python -m pip install Pillow
+No registrar claves o contraseñas como parte de estas instrucciones.
+
+
+04. MAPA DE CARPETAS Y ARCHIVOS
+-----------------------------
+Entradas y configuración:
+- index.html: tienda pública, categorías, contacto y modal de prenda.
+- NewDrop.html: acceso exclusivo, contador, filtros y modal de prenda.
+  Git registra NewDrop.html; Windows puede mostrar newdrop.html. Respetar el nombre
+  público en hosting que distinga mayúsculas y minúsculas.
+- admin.html: acceso y panel de gestión con sus diálogos.
+- 404.html: página de error; también reconduce la variante de ruta de New Drop.
+- config.js: configuración compartida de F-ck Face.
+- package.json: scripts dev y test.
+- robots.txt: reglas de rastreo y referencia al sitemap.
+- sitemap.xml: URLs de la tienda y New Drop.
+- AGENTS.md: pauta de trabajo y actualización de esta documentación.
+- README.md: introducción y guía de configuración del repositorio.
+
+assets/js/pages/:
+- app.js: comportamiento de index.html.
+- newdrop.js: acceso exclusivo y vista previa administrativa.
+- admin.js: gestión de sesiones, drops, publicaciones, inventario y ventas.
+
+assets/js/shared/:
+- measurements.js: campos, editor y presentación de medidas.
+- product-images.js: estados de carga y galería con miniaturas.
+- product-thumbnails.js: mapa generado de portadas y vistas previas locales.
+- image-compression.js: preparación de las fotos antes de subirlas.
+- drop-preview.js: lecturas autorizadas del drop para administradores.
+- sales-report.js: agrupación de ingresos por períodos.
+- sale-photos.js: planificación y ejecución de limpieza de fotos.
+- password-toggle.js: botones para mostrar y ocultar contraseñas.
+- page-loader.js: overlay de carga y límite de espera.
+
+assets/css/:
+- styles.css: tienda, New Drop, galería y adaptación de diseño.
+- admin.css: panel, filtros, formularios, historial y fichas de venta.
+- password-toggle.css: campos con botón de visibilidad.
+- 404.css: página de error.
+
+img/:
+- Recursos de marca y medios estáticos usados por las páginas.
+- product-thumbs/: portadas WebP y miniaturas generadas.
+No renombrar recursos existentes sin actualizar sus referencias.
+
+SQL:
+- supabase-schema.sql: instalación base y ampliaciones incluidas en el archivo.
+- sales-history.sql: ampliación de ventas y cola de limpieza.
+- drop-management.sql: gestión de drops y consulta administrativa de contraseñas.
+- sleeve-length.sql: columna sleeve_length_cm y recarga de esquema.
+- supabase/migrations/20260912033744_category_measurements.sql: medidas adicionales.
+
+Herramientas, pruebas y registros:
+- tools/dev-server.cjs: servidor estático de desarrollo.
+- tools/build-product-thumbnails.py: portadas y galerías WebP públicas.
+- tools/cleanup-orphan-images.cjs: limpieza de una auditoría histórica específica.
+- tools/cleanup-orphan-images.ps1: entrada segura y confirmación de esa limpieza.
+- tests/: pruebas automatizadas y página de comprobación de compresión.
+- storage-cleanup-audit-20260922.json: auditoría histórica de objetos y candidatos.
+- storage-cleanup-baseline-20260922.json: inventario histórico de referencia.
+- storage-cleanup-progress-20260922.json: registro histórico de progreso.
+- docs/: documentación central, manual operativo, calidad y limpieza histórica.
+- Camisadel10/: archivos parciales de otra aplicación; ver sección 18.
+
+
+05. TIENDA PÚBLICA
+-----------------
+Archivos: index.html, assets/js/pages/app.js, assets/css/styles.css.
+
+Funciones disponibles:
+- Presentación de marca, contenido visual y enlaces de contacto.
+- Menú móvil con apertura, cierre, Escape y selección de categoría.
+- Siete categorías principales y botón para volver al catálogo completo.
+- Tarjetas con foto, nombre, talla, condición, precio y estado de disponibilidad.
+- Descuento porcentual y precio anterior cuando original_price > price.
+- Mensajes de catálogo vacío, categoría vacía y error de carga.
+- Contador informativo para la apertura pública del próximo drop.
+- Detalle de producto con descripción, medidas, precio, galería y consulta.
+- Enlace directo index.html?prenda=<UUID_PRODUCTO>.
+
+Carga de datos:
+1. Ejecuta release_due_drops.
+2. Consulta get_public_catalog y get_current_drop en paralelo.
+3. Renderiza las prendas published, ordenadas por la respuesta del servidor.
+4. Si hay parámetro prenda, busca la pieza y abre su detalle.
+
+Antes de abrir el detalle, get_public_product vuelve a comprobar que la prenda
+sigue publicada. Una venta o retirada puede hacer que deje de estar disponible.
+Los estados reserved y payment_pending conservan visibilidad pero bloquean la
+consulta desde el botón de la ficha y muestran el aviso correspondiente.
+
+El filtro público actual es por categoría. La búsqueda y el filtro por talla
+pertenecen a New Drop y al panel; no atribuirlos a index.html.
+
+WhatsApp:
+- Mensaje de prenda: nombre, precio y enlace al detalle.
+- Consulta general: mensaje general, sin ID de prenda.
+- wa.me precarga texto; el visitante realiza el envío en WhatsApp.
+- No adjunta archivos ni genera una miniatura específica del producto en WhatsApp.
+- Compartir el enlace no reserva automáticamente la prenda.
+
+
+06. NEW DROP Y VISTA PREVIA ADMINISTRATIVA
+----------------------------------------
+Archivos: NewDrop.html, assets/js/pages/newdrop.js, shared/drop-preview.js.
+
+Antes de la apertura exclusiva:
+- Muestra contador y formulario de acceso.
+- El botón de acceso permanece deshabilitado.
+- No carga prendas exclusivas mediante el RPC de contraseña.
+
+Durante la ventana exclusiva:
+- get_exclusive_products valida drop, contraseña, actividad y horario en SQL.
+- Si concede acceso, muestra las prendas new_drop vinculadas a ese drop.
+- Categorías disponibles y sus cantidades se calculan a partir de esas prendas.
+- Todas, búsqueda, talla, limpiar filtros y contador de resultados.
+- Búsqueda normalizada: minúsculas, espacios y acentos.
+- Detalle con fotos, miniaturas cuando existan, precio y medidas.
+- Al abrir una prenda vuelve a leer las prendas autorizadas para comprobarla.
+
+Persistencia del acceso comunitario:
+- Clave localStorage: ff-exclusive-drop-<UUID_DROP>.
+- Guarda password y expiresAt, igual a la apertura pública.
+- Se valida de nuevo al recuperar el acceso; no sustituye al control del servidor.
+- Al llegar a la apertura pública elimina la entrada y vuelve a cargar el estado.
+- Esta contraseña comunitaria es independiente de las credenciales de Auth.
+
+Apertura pública:
+- El contador invoca release_due_drops y recarga New Drop.
+- La sección exclusiva se cierra; las prendas publicadas están en index.html.
+- NewDrop.html?prenda=<UUID> redirige a index.html si esa prenda ya es pública.
+- Sin drop activo se muestra el mensaje correspondiente.
+
+Vista previa administrativa:
+- Enlace desde el panel: NewDrop.html?preview=admin.
+- Necesita sesión Auth y fila del usuario en admin_profiles.
+- Lee directamente el drop activo y sus prendas new_drop bajo los permisos RLS.
+- Permite revisar antes de la apertura exclusiva sin contraseña comunitaria.
+- No ejecuta release_due_drops ni inicia el contador de publicación automática.
+- No modifica fechas, estados ni datos de las prendas.
+- Compartir esa URL no concede permisos de administrador.
+
+Enlaces de WhatsApp:
+- Conservan solo el enlace de prenda de New Drop.
+- No añaden password ni preview=admin al enlace compartido.
+
+
+07. ADMINISTRACIÓN: MÓDULOS Y OPERACIONES
+---------------------------------------
+Archivos: admin.html, assets/js/pages/admin.js, assets/css/admin.css.
+
+Sesión:
+- signInWithPassword recibe correo y contraseña de Supabase Auth.
+- La autorización exige una fila propia en admin_profiles.
+- Un usuario autenticado sin perfil autorizado no entra al panel.
+- setup comprueba la sesión al cargar; logout limpia campos de contraseña y sesión.
+- Mostrar/ocultar una contraseña solo cambia la presentación del campo.
+
+Navegación por módulos:
+- Programación del drop: dropModule.
+- Alta/publicación de prendas: publishModule.
+- Inventario activo y filtros: publishedModule.
+- Historial, ingresos y fichas: salesModule.
+El inventario activo incluye new_drop y published aunque su ID sea publishedModule.
+
+Programación del drop:
+- Nombre, apertura exclusiva, apertura pública, contraseña y nota opcional.
+- Creación/edición mediante save_managed_drop.
+- Crear exige apertura exclusiva futura; pública posterior a exclusiva y al momento
+  de guardar. Editar permite conservar una apertura exclusiva que ya ocurrió.
+- El servidor serializa la creación/edición para conservar un único drop activo.
+- Contraseña vacía al editar conserva la existente.
+- Consulta administrativa de contraseña guardada en drop_passwords.
+- Contraseñas antiguas sin fila consultable deben guardarse de nuevo para mostrarse.
+- Desactivar mediante deactivate_drop conserva prendas sin publicarlas ni moverlas.
+- El panel carga el drop activo y ofrece su vista previa.
+
+Alta de prenda:
+- Nombre, precio entero CRC, categoría, talla, condición, descripción y medidas.
+- Destino NEW DROP: exige drop activo, status=new_drop y drop_id=ID del drop.
+- Destino TIENDA PÚBLICA: status=published y drop_id=null; no exige drop activo.
+- Admite de una a siete fotos JPG, PNG o WebP, hasta 10 MiB de entrada por foto.
+- Comprime en el navegador antes de subir; ver sección 12.
+- Genera rutas con UUID del administrador, timestamp, UUID aleatorio y nombre limpio.
+- Registra las rutas en deleted_product_images antes de subir.
+- available_at de esa tarea se difiere una hora para proteger una carga en curso.
+- Sube secuencialmente, crea la fila products y cierra la tarea de carga.
+- Un fallo de subida o guardado intenta limpiar los archivos; conserva la tarea si
+  queda trabajo pendiente. Una foto referenciada por un producto guardado se conserva.
+- Muestra progreso, peso final y porcentaje de ahorro cuando corresponda.
+
+Inventario:
+- Lista de prendas que no están sold.
+- Filtros por texto, talla, categoría, precio mínimo/máximo y descuento.
+- Contador de resultados y limpiar filtros.
+- Cambio de disponibilidad: available, reserved o payment_pending.
+- Edición de nombre, precio, categoría, talla, condición, descripción y medidas.
+- El editor actual no sustituye fotos ni cambia el destino/drop de la prenda.
+
+Descuentos:
+- Al bajar el precio conserva el mayor entre el precio anterior y original_price.
+- original_price debe ser mayor que price para mostrar descuento.
+- Al alcanzar o superar el precio anterior, se elimina la rebaja.
+- Quitar descuento se aplica al guardar la edición.
+
+Registrar venta:
+- VENDIDA abre un formulario con el monto recibido.
+- Monto: entero no negativo en CRC; puede diferir del precio publicado.
+- Guarda sold, sold_at, sale_price y sale_origin_status.
+- Conserva solo la primera URL de foto y registra las adicionales para limpieza.
+- Condiciona la escritura al estado y updated_at leídos para detectar conflictos.
+- La venta permanece registrada aunque falle posteriormente la limpieza de Storage.
+- Las piezas sold salen de los catálogos y del inventario activo.
+
+Historial e ingresos:
+- Total bruto acumulado y cantidad de prendas vendidas.
+- Resúmenes actuales y desglose por semana, quincena y mes.
+- Semana de lunes a domingo; quincenas del 1 al 15 y del 16 al fin de mes.
+- Períodos y fechas de venta calculados en America/Costa_Rica.
+- Los importes proceden de sale_price; no son utilidad ni incluyen cálculo de costos.
+- Ficha con foto principal, descripción, medidas, precio publicado, monto y fechas.
+- Conservar solo una foto en ventas limpia ventas antiguas y pendientes.
+
+Revertir venta:
+- Primero debe completarse la limpieza pendiente de esa venta.
+- Resta la venta de los resúmenes al limpiar los campos de venta.
+- Recupera new_drop solo si su drop original sigue activo y no abrió al público;
+  en otro caso restaura published.
+- availability vuelve a available.
+- No recupera fotos adicionales que ya fueron borradas.
+
+Eliminar prenda:
+- Pide confirmación y llama delete_product_for_admin.
+- Retira la fila y registra URLs para limpieza en una transacción de PostgreSQL.
+- El navegador usa Storage API para borrar los objetos.
+- No equivale a vender y no suma ingresos ni conserva una ficha de venta.
+- Ante fallos, ofrece REINTENTAR LIMPIEZA DE FOTOS.
+
+
+08. MÓDULOS JAVASCRIPT COMPARTIDOS
+---------------------------------
+measurements.js -> window.ProductMeasurements
+- fields(category): selección de campos de medidas.
+- editor(container, category, product, original): crea controles numéricos y conserva
+  medidas históricas no seleccionadas bajo MEDIDA ANTERIOR cuando aplica.
+- values(container): valores numéricos o null desde el formulario.
+- display(product): reconstruye las medidas visibles en el detalle público/exclusivo.
+- Medidas en cm, opcionales; inputs de 0 a 9999,99 con paso 0,01.
+- Pantalones: length_cm, waist_width_cm, inseam_cm.
+- Bolsos/mochilas: height_cm, width_cm, depth_cm.
+- Jackets y categoría anterior abrigos: largo, pecho, ancho y largo de manga.
+- Otras categorías: largo y pecho.
+- inseam_cm conserva su nombre histórico en datos y se rotula ANCHO DE PIERNA.
+  Cambiar el rótulo no convierte valores históricos de entrepierna en ancho.
+
+product-images.js -> window.ProductImages
+- prepare(root): observa carga/error de imágenes de producto y de galería.
+- setSource(img, src): establece URL y decoding=async; actualiza estado visual.
+- thumbnailFor(product, source): busca miniatura por URL exacta dentro de la prenda.
+- renderGallery(gallery, mainImage, product, images): botones con previews, selección
+  activa y aria-pressed; oculta navegación si solo hay una foto.
+- Preview de 62x62 CSS, lazy, prioridad low y alt vacío porque el botón tiene nombre.
+- Fallback de miniatura ausente a original una vez; no genera un bucle de errores.
+- No reasigna la foto grande cuando se pulsa la selección que ya está activa.
+
+product-thumbnails.js -> window.ProductThumbnails
+- Archivo generado, no una lista manual de productos.
+- Claves UUID de prenda; source/thumbnail para portada; gallery con pares
+  source/thumbnail para las demás vistas.
+- Las URLs originales sirven para detectar fotos cambiadas y reordenadas.
+
+image-compression.js -> window.ImageCompression
+- prepare(files, onProgress): valida toda la selección y procesa una foto a la vez.
+- compress(file): decodifica, reduce dimensiones/peso y entrega File listo para subir.
+- MAX_BYTES=300000; MAX_DIMENSION=1600.
+- WebP preferido; JPEG alternativo si el navegador no codifica WebP.
+- Libera bitmap/canvas al terminar o fallar; rechaza fotos no preparables.
+
+drop-preview.js -> window.DropPreview
+- load(client): autoriza al administrador y obtiene drop activo y sus prendas.
+- products(client, dropId): autoriza y lee products de ese drop con status=new_drop.
+- No concede permisos ni ignora RLS; usa la sesión existente.
+
+sales-report.js -> window.SalesReport y exportación CommonJS en Node
+- period(value, kind): inicio, clave y nombre de un período.
+- build(sales, now): suma importes y cuenta ventas por week, fortnight y month.
+- Conserva un grupo para el período actual incluso si no tiene ventas.
+- Omite fechas de venta inválidas al agrupar.
+
+sale-photos.js -> window.SalePhotos y exportación CommonJS en Node
+- plan(product): primera foto conservada y fotos extra sin duplicados.
+- storagePath(url, baseUrl): acepta solo URLs esperadas del bucket del proyecto;
+  rechaza rutas ajenas, consultas, fragmentos y segmentos de navegación.
+- cleanup(client, product, baseUrl): procesa image_cleanup_pending de una venta;
+  protege primera foto y fotos compartidas; conserva pendientes ante fallos.
+- cleanupDeleted(client, job, baseUrl): limpia una tarea de eliminación/carga;
+  comprueba referencias antes de borrar y cierra o actualiza la tarea.
+- Las consultas y los borrados de Storage son operaciones separadas; no constituyen
+  una transacción distribuida entre PostgreSQL y Storage.
+
+password-toggle.js
+- Envuelve inputs password y añade botón con aria-controls y aria-pressed.
+- Cambia password/text sin alterar su valor; hide-password vuelve a ocultarlo.
+- Debe cargarse después de los campos HTML y antes de los eventos que lo utilizan.
+
+page-loader.js -> window.StorePageLoader
+- start, ready y finish controlan el overlay de carga.
+- Espera imágenes de cabecera/hero/categorías y hasta ocho fotos iniciales del grid.
+- Esas imágenes iniciales se ponen eager; las demás conservan su carga diferida.
+- Límite de espera de ocho segundos y salida en pagehide.
+- Bloquea Tab mientras el overlay está activo y evita quedar esperando por siempre.
+- Se carga temprano en index.html y NewDrop.html; no interviene en admin.html.
+
+Orden de scripts:
+- Página pública: loader temprano; después SDK, config, medidas, imágenes,
+  mapa de miniaturas y app.js.
+- New Drop: loader temprano; después SDK, config, toggle de contraseña, medidas,
+  imágenes, mapa, vista previa y newdrop.js.
+- Admin: SDK, config, toggle, medidas, compresión, mapa, reportes, fotos y admin.js.
+Conservar este orden al incorporar dependencias globales nuevas.
+
+
+09. MODELO DE DATOS Y ESTADOS
+----------------------------
+public.products:
+- id: UUID de la prenda.
+- name: nombre obligatorio, de 1 a 160 caracteres según el esquema.
+- price: entero no negativo, colones costarricenses.
+- original_price: null o importe positivo mayor que price.
+- category: identificador permitido por el CHECK de la tabla.
+- size, condition, description: textos descriptivos opcionales.
+- image_urls: arreglo de URLs de fotos; la primera es portada y foto conservada.
+- drop_id: referencia opcional a drops, ON DELETE SET NULL.
+- status: new_drop, published o sold.
+- availability: available, reserved o payment_pending.
+- length_cm, chest_width_cm: largo y ancho de pecho.
+- sleeve_width_cm, sleeve_length_cm: ancho y largo de manga.
+- waist_width_cm, inseam_cm: cintura en plano y campo histórico de pantalones.
+- height_cm, width_cm, depth_cm: alto, ancho y fondo para bolsos.
+- sale_price, sold_at, sale_origin_status: datos de venta; obligatorios al estar sold,
+  y null en los demás estados por products_sale_check.
+- image_cleanup_pending: arreglo de URLs que quedan por limpiar en ventas.
+- created_at, updated_at: control temporal; updated_at participa en escrituras
+  condicionales de venta, reversión y limpieza.
+
+Categorías principales:
+jacket_damas, jacket_caballeros, pantalones, chalecos, tallas_plus, ropa_ninos,
+mochilas (etiqueta administrativa Bolsos / Mochilas).
+Compatibilidad con categorías antiguas: camisas, abrigos, buzos, accesorios, otros.
+No borrar ni convertir categorías antiguas sin revisar los productos existentes.
+
+public.drops:
+- id, created_at: identidad y fecha de creación.
+- name: nombre, predeterminado New Drop.
+- exclusive_at: inicio del acceso comunitario.
+- public_at: inicio público.
+- release_at: fecha histórica mantenida por compatibilidad, igual a public_at al
+  guardar con el RPC actual.
+- access_password_hash: hash usado para validar la contraseña del acceso exclusivo.
+- description: nota opcional.
+- is_active: actividad del drop.
+
+public.admin_profiles:
+- user_id: UUID de Auth autorizado, PK y FK a auth.users con ON DELETE CASCADE.
+- created_at: fecha de autorización.
+
+public.drop_passwords:
+- drop_id: PK/FK a drops, con ON DELETE CASCADE.
+- password: contraseña comunitaria consultable por administradores autorizados.
+El hash en drops no es la única representación de esa contraseña: existe esta copia
+en texto consultable para el panel. No describir el sistema como solo hash.
+
+public.deleted_product_images:
+- id: identidad de la tarea de limpieza.
+- product_id: UUID de referencia de la prenda o provisional de una carga.
+  No exige que la fila products siga existiendo.
+- urls: fotos a revisar/borrar.
+- available_at: momento desde el cual se ofrece el reintento.
+- created_at: creación de la tarea.
+
+Transiciones:
+- Alta exclusiva: new_drop + drop_id activo.
+- Apertura pública: new_drop -> published para las prendas de ese drop.
+- Alta directa: published + drop_id=null.
+- Apartado/proceso: cambia availability, sin cambiar status.
+- Venta: new_drop/published -> sold, registra origen y monto/fecha.
+- Reversión: sold -> new_drop o published según vigencia del drop original.
+- Eliminación: retira la fila activa y deja una tarea de limpieza de fotos.
+
+
+10. FUNCIONES SQL, AUTORIZACIÓN Y STORAGE
+---------------------------------------
+RPC públicos o utilizados por visitantes:
+- release_due_drops(): publica prendas new_drop de drops activos cuya fecha pública
+  venció y desactiva esos drops. SQL toma la hora del servidor.
+- get_current_drop(): metadatos del próximo drop activo, sin contraseña guardada.
+- get_public_catalog(): productos con status=published.
+- get_public_product(p_product_id): una pieza published, si existe.
+- get_exclusive_products(p_drop_id,p_password): valida ventana exclusiva, actividad
+  y hash; devuelve prendas new_drop del drop autorizado.
+
+RPC administrativos:
+- is_admin(): verifica auth.uid contra admin_profiles.
+- save_managed_drop(p_drop_id,p_name,p_exclusive_at,p_public_at,p_password,
+  p_description): creación o edición del drop, hash y contraseña consultable.
+- deactivate_drop(p_drop_id): desactiva sin transferir/publicar prendas.
+- delete_product_for_admin(p_product_id): retira prenda no sold y deja tarea de fotos.
+- save_active_drop(p_exclusive_at,p_public_at,p_password,p_description): RPC anterior
+  presente por compatibilidad; el panel actual usa save_managed_drop.
+
+Protecciones descritas por los SQL del repositorio:
+- Tablas administrativas con RLS y políticas basadas en is_admin.
+- admin_profiles permite al usuario autenticado consultar su propia autorización.
+- anon no dispone de acceso directo a las tablas principales; el público usa RPC.
+- drop_passwords solo ofrece SELECT a administradores mediante su política.
+- RPC administrativos sensibles comprueban autorización dentro de la función.
+- Algunas funciones son SECURITY DEFINER: revisar permisos, search_path y resultado
+  completo al editarlas; no suponer que el frontend impone su seguridad.
+
+Storage:
+- Bucket product-images, configurado como público en supabase-schema.sql.
+- Inserción/actualización exige administrador y prefijo del UUID de quien sube.
+- Eliminación permitida a administradores autorizados del bucket, incluso de fotos
+  que subió otra cuenta administradora.
+- Frontend usa APIs de Storage; no borrar filas storage.objects mediante SQL.
+- Foto pública y fila privada son capas distintas: conocer la URL de una imagen
+  pública permite acceder al objeto aunque la prenda no esté en el catálogo.
+- La copia de miniaturas en el hosting no se elimina al borrar una foto de Storage.
+
+Gestión de accesos:
+1. Crear/invitar administrador desde Supabase Auth.
+2. Añadir su user_id a public.admin_profiles con una operación administrativa.
+3. Comprobar entrada del usuario autorizado y rechazo de otro usuario sin perfil.
+4. Gestionar contraseñas en Auth, fuera de este archivo y del repositorio.
+No afirmar que MFA, límites de intentos o registros públicos estén configurados
+porque aparezcan como recomendación en la documentación: requieren revisión real.
+
+
+11. SCRIPTS SQL E INSTALACIÓN
+----------------------------
+Instalación nueva:
+- Revisar y aplicar supabase-schema.sql en el proyecto elegido.
+- Incluye tablas, ampliaciones de columnas, RLS, bucket, RPC públicos y gestión del
+  drop. Usa pgcrypto instalado en el esquema extensions.
+- Configurar Auth, autorización del administrador y config.js.
+- Probar los flujos antes de publicar los archivos web.
+
+Instalación existente:
+- Consultar estructura actual y migraciones aplicadas; respaldar antes de cambios.
+- Revisar diferencias antes de ejecutar el esquema completo: contiene ajustes de
+  compatibilidad y actualizaciones de registros, no solo CREATE TABLE.
+- sales-history.sql añade campos de venta, restricciones, cola y RPC de eliminación.
+- drop-management.sql añade nombre del drop, drop_passwords y RPC de gestión.
+- 20260912033744_category_measurements.sql añade medidas por categoría.
+- sleeve-length.sql añade largo de mangas.
+- Aplicar únicamente los cambios pertinentes que no estén ya incorporados y
+  comprobar compatibilidad con datos existentes.
+- notify pgrst, 'reload schema' permite que la API recoja columnas y RPC actualizados
+  en los scripts que lo incluyen. Revisar su necesidad en una migración nueva.
+
+Este documento inventaría los archivos disponibles; no registra esos scripts como
+aplicados en producción. Cada aplicación futura debe tener entrada de bitácora con
+proyecto, archivo, resultado y verificación, sin credenciales.
+
+
+12. IMÁGENES, COMPRESIÓN, MINIATURAS Y CACHÉ
+-----------------------------------------
+Hay tres tamaños/propósitos diferentes:
+1. Foto almacenada en Storage: la que muestra el detalle de la prenda.
+2. Portada local: WebP hasta 400x540 para tarjetas, cuando coincide la URL original.
+3. Miniatura de galería: WebP hasta 128x172 para botones de vista previa de 62x62.
+
+Compresión de cargas nuevas:
+- Entrada JPG/PNG/WebP; 1 a 7 archivos, cada uno hasta 10 MiB.
+- Salida máxima 300000 bytes por foto y lado mayor de 1600 px.
+- Mantiene proporciones; no recorta ni amplía.
+- Conserva archivo pequeño si cumple límites y no requiere recompresión.
+- Prueba calidad WebP; usa JPEG si el navegador no produce WebP.
+- Si no alcanza el límite de peso, reduce dimensiones progresivamente.
+- Un archivo ilegible/no reducible detiene la preparación, sin subir el original.
+- La compresión ocurre en el cliente; no transforma fotos históricas existentes.
+- Las subidas usan cacheControl=86400 y rutas nuevas, sin upsert.
+- Es un límite del panel, no un límite de tamaño del bucket en el servidor.
+
+Generación de miniaturas:
+  python tools/build-product-thumbnails.py
+- Lee config.js para URL y clave pública.
+- Consulta get_public_catalog: solo las prendas públicas actuales.
+- Acepta fuentes HTTPS del proyecto configurado y bucket público product-images.
+- Reutiliza portada existente si source coincide y su archivo existe.
+- La primera miniatura puede generarse desde esa portada sin descargar su original.
+- Descarga originales únicamente para miniaturas/portadas que faltan.
+- Procesa hasta cuatro prendas simultáneamente y limita las respuestas a 10 MB.
+- Respeta orientación EXIF, guarda WebP quality=60 y registra fallos por imagen.
+- Los nombres nuevos incluyen UUID de producto y hash SHA-256 de la URL original.
+- Reescribe product-thumbnails.js con el mapa del catálogo público consultado.
+- No borra automáticamente archivos locales de productos retirados del catálogo.
+
+Comportamiento de la galería:
+- Miniaturas visibles al entrar en la prenda, con lazy/decodificación asíncrona.
+- Foto principal se carga al abrir la ficha; las demás fotos grandes al seleccionarlas.
+- La selección activa no provoca una nueva asignación de su foto grande.
+- Si no hay miniatura, usa la URL original con lazy y prioridad baja.
+- Si falla una miniatura local, intenta la URL original una sola vez.
+- Se valida source exacta, por lo que un cambio/orden de fotos no intercambia vistas.
+
+Publicación de miniaturas:
+- Subir img/product-thumbs/ y product-thumbnails.js junto al código de galería.
+- Después de añadir/cambiar fotos públicas, regenerar y publicar ambos recursos.
+- No hay generación automática desde el panel ni al abrir una prenda.
+- Drops todavía exclusivos usan originales hasta disponer de una solución específica;
+  el generador público no los incluye ni publica sus datos en el mapa.
+- Miniaturas con hash admiten caché larga/immutable en hosting; mapa y código deben
+  revalidarse para recoger cambios. Son pautas de configuración, no reglas ya
+  aplicadas por un archivo de hosting del repositorio.
+- tools/dev-server.cjs usa no-store deliberadamente durante desarrollo.
+- Una imagen cacheada todavía puede consumir tráfico del proveedor. Miniaturas
+  reducen bytes; no garantizan consumo nulo ni un ahorro porcentual universal.
+
+
+13. HERRAMIENTAS DE MANTENIMIENTO
+--------------------------------
+Servidor local: tools/dev-server.cjs
+- npm run dev; URL http://127.0.0.1:4173.
+- PORT permite otro puerto; escucha solo 127.0.0.1.
+- Métodos GET y HEAD; otros reciben 405.
+- Sirve extensiones web y medios definidos; bloquea segmentos ocultos y rutas fuera
+  de la raíz. No es un hosting de producción ni una API del negocio.
+- Respuestas con Cache-Control: no-store para ver cambios sin caché local.
+
+Generador: tools/build-product-thumbnails.py
+- Procedimiento y salidas en sección 12.
+- Requiere conexión de lectura al catálogo y a las imágenes públicas.
+- Ejecutarlo no publica archivos ni aplica migraciones.
+
+Limpieza histórica: tools/cleanup-orphan-images.ps1 y .cjs
+- Caso específico del proyecto zfyotvnrvfbegfrmjygo y auditoría de 2026-09-22.
+- No usarlo como limpiador genérico del proyecto principal actual.
+- Primera ejecución revisa únicamente; -Execute solicita confirmación ELIMINAR.
+- La clave administrativa se introduce de forma oculta o por variable del proceso
+  SUPABASE_SERVICE_ROLE_KEY; no se incorpora al código/documentos.
+- Valida inventario y objetos dos veces antes de borrar.
+- Comprueba referencias, identidad, tamaño, fechas y exclusión de cargas recientes.
+- Usa API de Storage, conserva lista de pendientes y verifica las fotos protegidas.
+- Ante HTTP 402 o cambios frente a la auditoría, se detiene.
+- Un fallo puede ocurrir tras un borrado parcial: revisar antes de reintentar.
+- Archivos de salida posibles: storage-cleanup-pending-20260922.json y
+  storage-cleanup-result-20260922.json, según la ejecución.
+- docs/limpieza-fotos.md contiene contexto, cifras y límites históricos. Esas cifras
+  y fechas de facturación no describen automáticamente el estado actual.
+- No ejecutar limpieza real como parte de pruebas o actualización de documentos.
+
+
+14. PRUEBAS Y VERIFICACIÓN
+-------------------------
+Pruebas Node, sin instalar dependencias:
+  npm test
+Ejecuta node --test tests/*.test.cjs.
+
+Cobertura por archivo:
+- store.test.cjs: recursos locales, configuración compartida, portadas/miniaturas,
+  acceso New Drop, redirección de productos públicos, contador, filtros y enlaces.
+- product-gallery.test.cjs: previews locales, selección de originales, orden/fotos
+  reemplazadas, fallback sin bucles y reapertura con una sola imagen.
+- image-compression.test.cjs: tamaños, formatos, fallback JPEG, validación completa,
+  secuencia, errores y liberación de recursos.
+- admin-image-upload.test.cjs: bytes comprimidos, MIME/extensión, fallo de compresión
+  sin subida de originales y cola/limpieza de cargas parciales.
+- drop-preview.test.cjs: autorización, productos del drop activo y errores de sesión.
+- sales-report.test.cjs: períodos y sumas en zona de Costa Rica y sus fronteras.
+- sale-photos.test.cjs: primera foto protegida, rutas válidas, fotos compartidas,
+  fallos de limpieza y cierre/reintento de tareas.
+- storage-cleanup.test.cjs: simulaciones de revisión y borrado histórico, cambios de
+  referencias/objetos y bloqueo HTTP 402. No efectúa borrados reales de producción.
+
+Pruebas Python independientes:
+  python tests/product-thumbnails.test.py
+- Necesitan Pillow; no están incluidas en npm test.
+- Verifican dimensiones WebP y reutilización sin descargas.
+- Comprueban portada histórica, cambio de foto/nombre de caché, fallo parcial y
+  rechazo de fuentes privadas o de otro proyecto.
+- Usan temporales y respuestas simuladas, no el catálogo real.
+
+Prueba de navegador de compresión:
+- tests/compression-browser.html: prueba automática en navegador con una textura
+  sintética y img/fotogorda.jpg; presenta PASS/FAIL y comparación visual de la foto.
+- Servirla localmente; no se conecta a Supabase ni sube archivos. Necesita la foto
+  local de prueba disponible; no modifica productos reales.
+
+Revisión manual proporcional al cambio:
+- Tienda: categoría/Todas, producto, galería, enlace directo, apartada/en proceso.
+- New Drop: antes de exclusiva, contraseña correcta/incorrecta, filtros y apertura.
+- Vista previa: administrador autorizado y usuario sin permisos.
+- Panel: alta en ambos destinos, edición/medidas, disponibilidad, venta y reversión.
+- Fotos: fallos de preparación, subida y limpieza, con datos de prueba controlados.
+- Móvil y escritorio para pantallas modificadas; consola y recursos faltantes.
+- npm test usa simulaciones; no prueba por sí solo credenciales, RLS o hosting real.
+
+Antes de registrar éxito: guardar el comando, resultado y alcance comprobado.
+No crear pruebas nuevas que solo repitan el código por un cambio de documentación.
+
+
+15. DESARROLLO LOCAL, PUBLICACIÓN Y REVERSIÓN
+------------------------------------------
+Inicio local:
+1. Abrir terminal en la raíz; comprobar Node.js.
+2. Ejecutar npm run dev y abrir la URL indicada.
+3. Verificar config.js: el frontend local puede consultar el proyecto real.
+4. No efectuar ventas, borrados o cambios de fechas reales durante una prueba visual.
+5. Recargar el navegador tras cambios: el servidor no hace recarga automática.
+6. Para terminar el servidor, Ctrl+C en la terminal que lo ejecuta.
+
+Publicación estática:
+1. Comprobar proyecto, dominio y número en la configuración y enlaces.
+2. Revisar rutas respetando capitalización, especialmente NewDrop.html.
+3. Preparar migraciones necesarias y aplicarlas antes del frontend que las requiera.
+4. Regenerar miniaturas si cambió el catálogo público/fotos.
+5. Ejecutar comprobaciones pertinentes y git diff --check.
+6. Publicar HTML, CSS, JS y recursos relacionados juntos.
+7. Configurar 404, caché y exclusión de archivos internos en el hosting.
+8. Verificar la versión publicada, rutas, detalle y consola.
+9. Anotar proveedor, despliegue/commit, fecha y comprobaciones en la bitácora.
+
+No hay proveedor/deploy automático configurado en los archivos revisados.
+El dominio escrito en SEO no prueba cuál es el proveedor ni qué commit está activo.
+robots.txt y noindex controlan rastreo; no protegen documentos ni credenciales.
+No publicar docs/, AGENTS.md, SQL, tests/, tools/ o auditorías como recursos públicos
+cuando se pueda excluirlos desde la configuración de despliegue.
+
+Reversión:
+- Identificar commit/despliegue anterior y cambios de datos realizados.
+- Recuperar el conjunto compatible de HTML, código y assets, no archivos aislados.
+- Un rollback web no revierte SQL, ventas ni eliminaciones de Storage.
+- Restaurar datos exige respaldo/procedimiento separado; documentar lo aplicado.
+- No revertir miniaturas cambiando solo el mapa si sus archivos ya no existen.
+
+
+16. RECETAS PARA FUTURAS MODIFICACIONES
+--------------------------------------
+Cambiar WhatsApp:
+- Editar config.js y revisar enlaces generales, detalle público/exclusivo y manual.
+- Registrar número como configuración pública si corresponde, nunca credenciales.
+
+Añadir categoría:
+- Revisar CHECK de products.category mediante migración compatible.
+- Añadir opciones de alta, edición y filtros en admin.html.
+- Actualizar categoryNames y tarjetas de categoría en app.js/index.html.
+- Actualizar categorías de newdrop.js; revisar medidas en measurements.js.
+- Conservar categorías históricas y comprobar filtros, cantidades y etiquetas.
+
+Añadir/cambiar medida:
+- Definir significado, categoría, unidad y tratamiento de valores antiguos.
+- Crear ampliación SQL antes del código que escriba la nueva columna.
+- Actualizar fields/editor/display y la ficha de venta administrativa.
+- Verificar columnas/constraints/API y controles de alta/edición.
+- No reinterpretar valores de inseam_cm por cambiar una etiqueta.
+
+Cambiar imágenes o galería:
+- Revisar product-images.js, estilos, render de tarjetas y mapa generado.
+- Revisar compresión/upload si cambia el archivo almacenado.
+- Revisar sale-photos.js y colas antes de añadir derivados en Storage.
+- Regenerar miniaturas públicas, verificar fallback y descargas bajo demanda.
+- Publicar juntos mapa, miniaturas y código; registrar peso y prueba visual.
+
+Cambiar precios/descuentos:
+- Revisar validación de price/original_price en SQL y admin.js.
+- Actualizar priceMarkup en app.js/newdrop.js y ficha/historial si corresponde.
+- Probar baja, aumento, quitar descuento y monto de venta independiente.
+
+Cambiar drop/acceso:
+- Revisar RPC, fechas del servidor, permisos, newdrop.js y formulario del panel.
+- Probar creación/edición/desactivación y contraseña vacía al editar.
+- Revisar localStorage y enlaces compartidos sin parámetros administrativos.
+- Mantener la vista previa como lectura sin publicación automática.
+
+Cambiar ventas/reportes:
+- Revisar products_sale_check y campos de venta.
+- Mantener condiciones de concurrencia y la protección de primera foto.
+- Respetar zona horaria y separar monto cobrado de precio publicado.
+- Probar venta, limpieza parcial y reversión; no usar producción como prueba.
+
+Cambiar dominio/hosting:
+- Revisar canonical, Open Graph, datos estructurados, sitemap y robots.
+- Revisar 404, capitalización, assets, caché y rutas de enlaces compartidos.
+- Revisar configuración Auth pertinente en el proveedor sin anotar secretos.
+
+Cambiar proyecto Supabase:
+- Inventariar esquema, administradores, bucket, URLs y referencias de fotos.
+- Configurar las páginas principales desde config.js.
+- Revisar miniaturas generadas y los datos históricos por separado.
+- No reutilizar el script de auditoría histórica cambiando solo su URL.
+- No cambiar Camisadel10/config.js como parte de la tienda principal.
+
+
+17. DIAGNÓSTICO Y LIMITACIONES CONOCIDAS
+--------------------------------------
+Catálogo no carga:
+- Revisar error concreto en consola/red, config.js, RPC, esquema y permisos.
+- Una prueba local de scripts no confirma una migración aplicada en Supabase.
+
+Usuario Auth no entra al panel:
+- Comprobar admin_profiles para su UUID y sesión; Auth sin autorización no basta.
+
+404 de RPC o columnas desconocidas:
+- Comprobar proyecto y versión de SQL aplicada; revisar recarga de esquema API.
+- Error gen_salt/crypt: scripts usan pgcrypto en extensions; revisar instalación.
+
+Prendas exclusivas no se publican:
+- Revisar public_at/release_at, is_active, status y drop_id.
+- release_due_drops se invoca desde visitas/cargas normales y el contador de New
+  Drop. No hay tarea Cron configurada en los scripts revisados.
+- Sin visitas en el instante del lanzamiento, puede publicarse en la siguiente
+  carga. El contador público de index.html cambia su texto al vencer; no recarga por
+  sí mismo el catálogo en ese tick. Recargar ejecuta la publicación y lectura.
+- La vista previa administrativa de New Drop no ejecuta esa publicación.
+
+Preview ausente o pesada:
+- Comprobar correspondencia exacta source, archivo local y despliegue del mapa.
+- Regenerar miniaturas públicas; si no existe derivado, fallback es la foto original.
+- No asumir que lazy limita el tamaño descargado: solo difiere el momento.
+
+Ventas o limpieza no guardan:
+- Comprobar SQL de ventas, RLS, estado y updated_at frente a edición concurrente.
+- Venta puede haberse guardado aunque la limpieza falle; revisar historial/pendientes.
+- Una foto compartida no debe borrarse. Storage y filas tienen verificaciones propias.
+
+HTTP 402/cuota de Storage:
+- Verificar estado actual del proyecto en Supabase.
+- La herramienta histórica no evita restricciones de cuota.
+- Borrar almacenamiento no elimina tráfico que ya se consumió en un ciclo.
+- Las cifras de docs/limpieza-fotos.md son históricas y pertenecen a otro proyecto.
+
+Limitaciones observadas, no mejoras implementadas:
+- Miniaturas se generan manualmente y solo para catálogo público.
+- Archivos locales antiguos de miniaturas no se limpian automáticamente.
+- Sin Cron independiente de visitas ni actualización Realtime de inventario público.
+- Estado de disponibilidad no se convierte en reserva transaccional al consultar.
+- Sin edición de fotos de una prenda existente en el editor actual.
+- El botón de alta conserva texto genérico AGREGAR A NEW DROP aun para destino
+  público; la fila guardada sí respeta el destino seleccionado.
+- Sin configuración de hosting/caché versionada en los archivos revisados.
+- SDK externo fijado a versión mayor; no hay versión exacta en un lockfile.
+- El manual previo contenía una contraseña: se retira en DOC-002. Retirarla del
+  archivo actual no borra copias o historial Git; su rotación requiere gestión Auth.
+- Camisadel10 contiene referencias a recursos que no están en esa carpeta.
+Registrar una mejora como pendiente no significa que esté autorizada o realizada.
+
+
+18. DOCUMENTOS COMPLEMENTARIOS Y APLICACIÓN SEPARADA
+---------------------------------------------------
+- README.md: orientación inicial, configuración y explicación del negocio.
+- docs/manual-uso.txt: pasos de operación del panel y mantenimiento ordinario.
+- docs/calidad.md: responsabilidades y comprobaciones antes de aceptar cambios.
+- docs/limpieza-fotos.md: auditoría histórica y herramienta específica de limpieza.
+- AGENTS.md: reglas de actualización documental para trabajo posterior.
+La descripción de estado actual se mantiene aquí; los procedimientos operativos
+también deben reflejarse en el manual cuando cambien.
+
+Camisadel10:
+- Solo se incluyen admin.html y config.js en la carpeta revisada.
+- Tiene su proyecto Supabase propio y Google Tag Manager en su HTML.
+- Su HTML referencia admin.js y otros recursos que no están completos aquí.
+- No comparte window.FUCK_FACE_CONFIG ni los módulos de la tienda principal.
+- No afirmar que su panel funciona completamente con estos archivos parciales.
+- Requiere documentación/alcance propio si se solicita modificar esa aplicación.
+
+
+19. BITÁCORA DE MODIFICACIONES
+-----------------------------
+Las entradas se añaden al final de esta sección, antes de la plantilla.
+El inventario de las secciones anteriores se reconstruyó desde archivos existentes;
+no supone que todos esos cambios se realizaron en la fecha de creación del registro.
+
+[DOC-001] 2026-10-08 - Restauración de vistas previas de prendas
+Origen: trabajo anterior de esta conversación; ya incluido en commit 174fae1 al
+iniciar la tarea de documentación.
+Solicitud: recuperar imágenes de vista previa en el detalle sin aumentar en exceso
+el consumo de recursos/tráfico de fotos.
+Cambios:
+- app.js y newdrop.js usan una galería compartida con previews de imagen.
+- product-images.js añade selección accesible, miniaturas por fuente y fallback.
+- build-product-thumbnails.py genera vistas pequeñas WebP e incrementa reutilización.
+- product-thumbnails.js e img/product-thumbs/ incluyen las vistas del catálogo público.
+- Pruebas de galería y generador; ampliación de validación de recursos y README.
+Pasos comprobados en el trabajo anterior:
+1. Revisión de la galería numerada existente y estrategia de miniaturas locales.
+2. Implementación compartida y generador incremental.
+3. Generación para el catálogo público consultado en esa fecha.
+4. npm test: 40 pruebas aprobadas; Python: 4 pruebas aprobadas.
+5. Navegador local: siete previews cargadas, cambio de foto principal, selección
+   activa, visualización móvil/escritorio y ausencia de errores de consola observados.
+Resultado histórico: 20 prendas, 128 miniaturas; 437224 bytes en total, promedio
+3416 bytes por miniatura. No usar estos números como conteo permanente del inventario.
+Limitaciones: generador público/manual; exclusivas o fotos nuevas sin derivado usan
+originales con lazy. Caché del hosting necesita configuración del proveedor.
+Publicación: no realizada por el agente en ese trabajo; commit posterior presente.
+No se confirmó qué versión está desplegada en producción.
+
+[DOC-002] 2026-10-08 - Documentación central y registro obligatorio
+Solicitud: crear un .txt para anotar pasos y modificaciones y documentar módulos,
+funcionalidades y todo lo necesario para facilitar el mantenimiento futuro.
+Base: revisión del código de commit 174fae1, README, manual, SQL, herramientas y tests.
+Cambios:
+- Nuevo docs/documentacion-proyecto.txt con arquitectura, módulos, flujos, datos,
+  permisos, imágenes, herramientas, pruebas, publicación, diagnóstico y bitácora.
+- Nuevo AGENTS.md con pauta de lectura y actualización documental en cada cambio.
+- Actualización del manual operativo, sin credenciales de administración.
+- README y docs/calidad.md enlazan el registro y reflejan el procedimiento vigente.
+Pasos:
+1. Inventariar archivos y dependencias; revisar tienda, New Drop y panel.
+2. Contrastar módulos compartidos, SQL, estados, herramientas y pruebas existentes.
+3. Distinguir proyecto principal, auditoría histórica y aplicación Camisadel10.
+4. Redactar referencia central y registrar el cambio anterior con evidencia disponible.
+5. Actualizar documentos relacionados y pauta para posteriores modificaciones.
+6. Revisar cobertura de archivos/rutas documentados, ausencia de credenciales,
+   consistencia de procedimientos y diff.
+Verificación completada:
+- Comprobados los cinco documentos de esta modificación.
+- Los 35 archivos técnicos versionados de la aplicación principal (JavaScript,
+  CSS, SQL, pruebas y herramientas) tienen referencia en el documento central.
+- Diez enlaces locales de los documentos resuelven a archivos existentes.
+- Comprobadas las 20 secciones, las dos entradas iniciales y la plantilla.
+- Verificada la retirada de la credencial anterior en los cinco documentos, sin
+  imprimirla ni incorporarla a los resultados de verificación.
+- git diff --check aprobado; cambios limitados a documentación e instrucciones.
+- No se añadieron ni ejecutaron nuevas pruebas de aplicación: no se modificó código
+  funcional. Los resultados de 40 pruebas Node y 4 Python de DOC-001 corresponden
+  a la tarea anterior, no a una ejecución repetida en esta tarea documental.
+Resultado: documentación de mantenimiento y plantilla de registro creadas.
+Limitaciones: no se inspeccionó el hosting ni el esquema real en producción; no se
+aplicaron migraciones ni se efectuaron cambios de inventario, Storage o credenciales.
+Pendiente operativo: gestionar fuera del repositorio la rotación de la contraseña
+que estaba en el manual anterior; su valor no se reproduce aquí.
+Publicación: cambios documentales locales; no se ejecutó un despliegue.
+
+
+20. PLANTILLA DE NUEVA ENTRADA
+-----------------------------
+Copiar dentro de la sección 19 y completar con hechos comprobados:
+
+[CAMBIO-XXX] AAAA-MM-DD - Título concreto
+Hora/zona si aplica: America/Costa_Rica.
+Solicitud:
+Motivo/problema y comportamiento esperado:
+Base/commit y cambios previos conservados:
+Pantallas/módulos afectados:
+Archivos modificados/creados:
+Cambios de datos/SQL/configuración (proyecto y respaldo, sin secretos):
+Pasos realizados:
+1.
+2.
+3.
+Resultado y comportamiento final:
+Verificación: comandos, resultados, prueba visual y alcance real.
+Incidencias relevantes y resolución:
+Impacto en rendimiento, compatibilidad o datos:
+Limitaciones y pendientes:
+Estado: implementado / verificado / publicado / pendiente, según evidencia.
+Publicación: no realizada, o proveedor/fecha/despliegue comprobados.
+Reversión: archivos, versión compatible y consideraciones sobre datos.
+Documentación complementaria actualizada:
