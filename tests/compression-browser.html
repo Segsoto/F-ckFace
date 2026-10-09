@@ -11,11 +11,11 @@
   let seed=7;for(let i=0;i<pixels.data.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)>>>0;pixels.data[i]=seed&255;pixels.data[i+1]=(seed>>>8)&255;pixels.data[i+2]=(seed>>>16)&255;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);
   const raw=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.95));
   const synthetic=await ImageCompression.compress(new File([raw],'textura.jpg',{type:raw.type}));
-  const bitmap=await createImageBitmap(synthetic);assert(synthetic.size<=300000,'Excede límite');assert(bitmap.width<=1600&&bitmap.height<=1600,'Excede dimensiones');
+  const bitmap=await createImageBitmap(synthetic);assert(synthetic.size<=1500000,'Excede límite');assert(bitmap.width<=2400&&bitmap.height<=2400,'Excede dimensiones');
   results.push({test:'textura compleja',before:raw.size,after:synthetic.size,width:bitmap.width,height:bitmap.height,type:synthetic.type});bitmap.close();
   const response=await fetch('../img/fotogorda.jpg');if(!response.ok)throw Error('No se pudo leer la foto de prueba');
   const original=await response.blob();const output=await ImageCompression.compress(new File([original],'foto.jpg',{type:'image/jpeg'}));
-  assert(output.size<=300000,'Foto supera límite');
+  assert(output.size<=1500000,'Foto supera límite');
   for(const blob of [original,output]){const image=new Image();image.src=URL.createObjectURL(blob);image.alt=blob===original?'Original':'Comprimida';document.getElementById('photos').append(image);}
   results.push({test:'foto local',before:original.size,after:output.size,type:output.type});
   document.getElementById('result').textContent='PASS\n'+JSON.stringify(results,null,2);

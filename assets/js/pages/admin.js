@@ -643,12 +643,48 @@
   document.getElementById("closeSaleDetail").addEventListener("click", () => saleDetailDialog.close());
   document.getElementById("backToSales").addEventListener("click", () => saleDetailDialog.close());
   saleDetailDialog.addEventListener("click", (event) => { if (event.target === saleDetailDialog) saleDetailDialog.close(); });
+  async function saveProductEdits(product, changes, files, onProgress) {
+    let uploaded, previousJob, updatedProduct;
+    let cleanupPending = false;
+    try {
+      if (files.length) {
+        uploaded = await uploadImages(files, onProgress);
+        const { data, error } = await client.from("deleted_product_images").insert({
+          product_id: product.id, urls: product.image_urls || [],
+          available_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        }).select("id,urls").single();
+        if (error) throw error;
+        previousJob = data;
+      }
+      onProgress("GUARDANDO...");
+      const { data, error } = await client.from("products").update({
+        ...changes, ...(uploaded ? { image_urls: uploaded.urls } : {}), updated_at: new Date().toISOString(),
+      }).eq("id", product.id).eq("status", product.status).eq("updated_at", product.updated_at).select().single();
+      if (error) throw new Error("No se pudo guardar. La prenda pudo cambiar en otra sesión; recargá el inventario y reintentá. " + error.message);
+      updatedProduct = data;
+    } finally {
+      // Recheck database references even after an ambiguous network error.
+      // This preserves any photos that the server already attached to a product.
+      for (const job of [uploaded?.cleanupJob, previousJob].filter(Boolean)) {
+        try {
+          const remaining = await window.SalePhotos.cleanupDeleted(client, job, config.url);
+          if (remaining) cleanupPending = true;
+        } catch (error) {
+          cleanupPending = true;
+          console.warn("La limpieza de fotos quedó pendiente:", error);
+        }
+      }
+    }
+    return { product: updatedProduct, cleanupPending, photosReplaced: Boolean(uploaded) };
+  }
   const editDialog = document.getElementById("editProductDialog");
+  let editSaving = false;
   function openEditProduct(product) {
     if (!product) return;
     removeDiscountRequested = false;
     document.getElementById("editProductId").value = product.id;
     document.getElementById("editProductTitle").textContent = product.name;
+    document.getElementById("editImages").value = "";
     document.getElementById("editName").value = product.name || "";
     document.getElementById("editPrice").value = product.price;
     document.getElementById("editCategory").value = product.category;
@@ -659,11 +695,13 @@
     document.getElementById("priceHelp").textContent = product.original_price ? `Precio anterior actual: ₡${Number(product.original_price).toLocaleString("es-CR")}. Si el precio vuelve a ser igual o mayor, la rebaja se quitará.` : "Al bajar el precio, se conservará automáticamente el precio anterior para mostrar la rebaja.";
     editDialog.showModal();
   }
-  document.getElementById("closeEditProduct").addEventListener("click", () => editDialog.close());
-  editDialog.addEventListener("click", (event) => { if (event.target === editDialog) editDialog.close(); });
+  document.getElementById("closeEditProduct").addEventListener("click", () => { if (!editSaving) editDialog.close(); });
+  editDialog.addEventListener("click", (event) => { if (event.target === editDialog && !editSaving) editDialog.close(); });
+  editDialog.addEventListener("cancel", (event) => { if (editSaving) event.preventDefault(); });
   document.getElementById("removeDiscount").addEventListener("click", () => { removeDiscountRequested = true; document.getElementById("priceHelp").textContent = "La rebaja se eliminará al guardar."; });
   document.getElementById("editProductForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (editSaving) return;
     const product = products.find((item) => item.id === document.getElementById("editProductId").value);
     if (!product) return;
     const button = event.currentTarget.querySelector('[type="submit"]');
@@ -677,24 +715,32 @@
     else if (price < product.price) originalPrice = Math.max(product.original_price || 0, product.price);
     else if (originalPrice && price >= originalPrice) originalPrice = null;
     if (originalPrice !== null && originalPrice <= price) originalPrice = null;
-    button.disabled = true; button.textContent = "GUARDANDO...";
-    try {
-      const { data: updatedProduct, error } = await client.from("products").update({
+    const changes = {
         name: document.getElementById("editName").value.trim(), price, original_price: originalPrice,
         category: document.getElementById("editCategory").value, size: document.getElementById("editSize").value.trim() || null,
         ...measurements.values(document.getElementById("editMeasurements")),
         condition: document.getElementById("editCondition").value.trim() || null, description: document.getElementById("editDescription").value.trim() || null,
-        updated_at: new Date().toISOString()
-      }).eq("id", product.id).select().single();
-      if (error) { notice(error.message, "error"); return; }
+    };
+    const files = Array.from(document.getElementById("editImages").files);
+    editSaving = true;
+    const controls = Array.from(event.currentTarget.querySelectorAll("input, select, textarea, button")).filter(control => !control.disabled);
+    controls.forEach(control => { control.disabled = true; });
+    button.textContent = "GUARDANDO...";
+    try {
+      const result = await saveProductEdits(product, changes, files, text => { button.textContent = text; });
+      const updatedProduct = result.product;
       products = products.map((item) => item.id === product.id ? updatedProduct : item);
       renderInventory();
-      editDialog.close(); notice("Prenda actualizada.");
+      editDialog.close();
+      notice(`Prenda actualizada.${result.photosReplaced ? " Fotos reemplazadas en alta calidad." : ""}${result.cleanupPending ? " Quedó una limpieza de fotos pendiente; usá REINTENTAR LIMPIEZA DE FOTOS cuando aparezca." : ""}`);
+      if (result.photosReplaced) await loadDeletionJobs();
     } catch (error) {
       console.error("Error actualizando la prenda:", error);
       notice(error.message || "No se pudo actualizar la prenda.", "error");
     } finally {
-      button.disabled = false; button.textContent = "GUARDAR CAMBIOS";
+      editSaving = false;
+      controls.forEach(control => { control.disabled = false; });
+      button.textContent = "GUARDAR CAMBIOS";
     }
   });
   inventory.addEventListener("change", async (event) => {
@@ -703,13 +749,13 @@
     const product = products.find((item) => item.id === select.dataset.availability);
     const previousValue = product?.availability || select.value;
     select.disabled = true;
-    const { error } = await client
+    const { data: updatedProduct, error } = await client
       .from("products")
       .update({ availability: select.value, updated_at: new Date().toISOString() })
-      .eq("id", select.dataset.availability);
+      .eq("id", select.dataset.availability).select().single();
     if (error) notice(error.message, "error");
     else {
-      if (product) product.availability = select.value;
+      products = products.map(item => item.id === updatedProduct.id ? updatedProduct : item);
       notice("Estado de la prenda actualizado.");
     }
     if (error) select.value = previousValue;

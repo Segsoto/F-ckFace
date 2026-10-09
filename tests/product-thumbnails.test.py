@@ -42,17 +42,31 @@ class ThumbnailTests(unittest.TestCase):
                 self.assertEqual(image.format, "WEBP")
                 self.assertLessEqual(image.width, 128)
                 self.assertLessEqual(image.height, 172)
+        with Image.open(self.root / entry["thumbnail"]) as image:
+            self.assertEqual(image.size, (720, 1080))
+        self.assertEqual(entry["cover_version"], thumbnails.COVER_VERSION)
         with patch.object(thumbnails, "read_limited", side_effect=AssertionError("Unexpected download")):
             self.assertEqual(thumbnails.build_product(product, {PRODUCT_ID: entry})[1], entry)
 
-    def test_current_legacy_cover_is_reused_without_downloading_the_original(self):
+    def test_legacy_cover_is_upgraded_from_source_with_a_new_cache_path(self):
         relative = f"img/product-thumbs/{PRODUCT_ID}.webp"
         Image.new("RGB", (360, 540)).save(self.root / relative, "WEBP")
         previous = {PRODUCT_ID: {"source": BASE + "front.jpg", "thumbnail": relative}}
-        with patch.object(thumbnails, "read_limited", side_effect=AssertionError("Unexpected download")):
+        with patch.object(thumbnails, "read_limited", return_value=self.raw) as download:
             _, entry = thumbnails.build_product({"id": PRODUCT_ID, "image_urls": [BASE + "front.jpg"]}, previous)
-        self.assertEqual(entry["thumbnail"], relative)
+        self.assertEqual(download.call_count, 1)
+        self.assertNotEqual(entry["thumbnail"], relative)
+        with Image.open(self.root / entry["thumbnail"]) as image:
+            self.assertEqual(image.size, (720, 1080))
         self.assertEqual(len(entry["gallery"]), 1)
+
+    def test_small_original_is_never_upscaled(self):
+        buffer = io.BytesIO()
+        Image.new("RGB", (180, 240)).save(buffer, "JPEG")
+        with patch.object(thumbnails, "read_limited", return_value=buffer.getvalue()):
+            _, entry = thumbnails.build_product({"id": PRODUCT_ID, "image_urls": [BASE + "small.jpg"]}, {})
+        with Image.open(self.root / entry["thumbnail"]) as image:
+            self.assertEqual(image.size, (180, 240))
 
     def test_replaced_photo_gets_a_new_cache_path_and_failure_preserves_other_previews(self):
         with patch.object(thumbnails, "read_limited", return_value=self.raw):

@@ -154,7 +154,7 @@
                   multiple
                   required
                 /><span id="fileCount">Seleccionar archivos</span></label
-              ><p id="imageCompressionHelp">JPG, PNG o WebP, hasta 10 MB por foto. Se comprimen automáticamente antes de subir (máximo 300 KB por foto).</p><button>AGREGAR A NEW DROP</button>
+              ><p id="imageCompressionHelp">JPG, PNG o WebP, hasta 10 MB por foto. Se preparan en alta calidad (hasta 2400 píxeles y 1,5 MB por foto). Usá las fotos originales del teléfono.</p><button>AGREGAR A NEW DROP</button>
             </form>
           </section>
         </div>
@@ -220,6 +220,8 @@
         <div class="two-cols"><label>CATEGORÍA<select id="editCategory" required><option value="jacket_damas">Jacket damas</option><option value="jacket_caballeros">Jacket caballeros</option><option value="pantalones">Pantalones</option><option value="chalecos">Chalecos</option><option value="tallas_plus">Tallas Plus</option><option value="ropa_ninos">Ropa niños</option><option value="mochilas">Bolsos / Mochilas</option><option value="camisas">Camisas (anterior)</option><option value="abrigos">Abrigos (anterior)</option><option value="buzos">Buzos (anterior)</option><option value="accesorios">Accesorios (anterior)</option><option value="otros">Otros (anterior)</option></select></label><label>TALLA<input id="editSize" /></label></div>
         <div class="two-cols" id="editMeasurements"></div>
         <label>ESTADO<input id="editCondition" /></label><label>DESCRIPCIÓN<textarea id="editDescription" rows="3"></textarea></label>
+        <label>REEMPLAZAR TODAS LAS FOTOS (OPCIONAL)<input id="editImages" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-describedby="editImagesHelp" /></label>
+        <p class="subtle" id="editImagesHelp">Sin seleccionar archivos se conservan las fotos actuales. Para mejorar su calidad, elegí de 1 a 7 originales, hasta 10 MB cada uno. La primera será la portada. Al guardar, se sustituye el conjunto completo y se limpian las fotos anteriores que ninguna prenda utiliza.</p>
         <div class="edit-actions"><button type="submit">GUARDAR CAMBIOS</button><button type="button" id="removeDiscount" class="secondary">QUITAR DESCUENTO</button></div>
       </form>
     </dialog>

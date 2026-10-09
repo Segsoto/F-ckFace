@@ -1,6 +1,6 @@
 MANUAL DE USO - F-CK FACE
 ========================
-Actualizado: 2026-10-08, hora de Costa Rica.
+Actualizado: 2026-10-09, hora de Costa Rica.
 Documentación técnica y registro de cambios: docs/documentacion-proyecto.txt.
 Este manual no debe contener contraseñas ni claves administrativas.
 
@@ -71,8 +71,10 @@ clientes: una URL con preview=admin no concede permisos de administrador.
 6. Comprobar el mensaje final y la presencia de la prenda en inventario.
 
 La primera foto es la portada. Al registrar una venta será la foto conservada.
-El panel comprime antes de subir: máximo 300000 bytes por foto y lado mayor de
-1600 píxeles, manteniendo proporciones. Las fotos ya pequeñas pueden conservarse.
+El panel prepara las fotos en alta calidad: hasta 1500000 bytes (1,5 MB) por foto
+y lado mayor de 2400 píxeles, manteniendo proporciones. Conserva sin recomprimir
+las fotos que ya cumplen esos límites. Usar originales del teléfono, con buena luz
+y enfoque; evitar capturas de pantalla o copias reenviadas que ya perdieron detalle.
 HEIC debe exportarse a JPG antes de seleccionarse. Un error de compresión impide
 la carga; elegir otra versión del archivo en lugar de subir el original pesado.
 El mensaje final informa el peso de las fotos y el ahorro cuando corresponda.
@@ -110,7 +112,9 @@ La vista previa administrativa de New Drop no ejecuta la publicación.
 El detalle muestra miniaturas de las diferentes fotos; seleccionar una cambia la
 foto grande. La miniatura seleccionada se distingue por su borde.
 
-Las miniaturas locales del catálogo público son WebP pequeñas y se preparan fuera
+Las portadas locales tienen hasta 800x1080 píxeles, con calidad WebP 88, sin ampliar
+fuentes pequeñas. Las previews de galería conservan hasta 128x172 píxeles.
+Las miniaturas locales del catálogo público se preparan fuera
 del servidor. Al añadir o cambiar fotos de prendas públicas, el encargado técnico
 debe ejecutar desde la carpeta del proyecto:
   python tools/build-product-thumbnails.py
@@ -133,7 +137,27 @@ El generador no publica archivos automáticamente ni cambia productos en la base
 Apartada/en proceso sigue visible con su aviso; su ficha bloquea la consulta de
 compra hasta que vuelva a estar disponible. Cambiar esa disponibilidad no registra
 una venta ni mueve la prenda entre New Drop y tienda pública.
-El editor actual no permite reemplazar fotos o trasladar la prenda a otro drop.
+Para cambiar fotos de una prenda existente:
+1. Abrir EDITAR en inventario.
+2. En REEMPLAZAR TODAS LAS FOTOS (OPCIONAL), seleccionar de 1 a 7 originales JPG,
+   PNG o WebP, hasta 10 MiB cada uno. Incluir todas las vistas que se quieran conservar.
+3. La primera foto de la selección será la nueva portada. Sin seleccionar archivos,
+   se conservan las fotos anteriores.
+4. Presionar GUARDAR CAMBIOS y esperar la preparación y subida. El editor permanece
+   bloqueado mientras guarda; no cerrar la página.
+5. Comprobar el mensaje final y las fotos desde la tienda o vista previa del drop.
+
+El cambio sustituye el conjunto completo; las fotos anteriores sin referencias se
+limpian después del guardado. Conservar los originales antes de reemplazarlas: no
+hay botón para deshacer una sustitución. Si falla la carga o hay un conflicto, revisar
+el aviso, recargar inventario y comprobar las fotos antes de reintentar. Un error de
+red puede ocurrir después de que el servidor haya guardado.
+Si queda una limpieza pendiente, se ofrece en REINTENTAR LIMPIEZA DE FOTOS después
+de una hora. Las fotos utilizadas por otra prenda se conservan.
+Tras sustituir fotos públicas, el encargado técnico debe regenerar y publicar las
+miniaturas según la sección 9. Mientras tanto se muestran las fotos nuevas de Storage.
+El editor no permite trasladar la prenda a otro drop. Más resolución no recupera
+el detalle que ya se perdió en una copia antigua; usar el original para mejorarlo.
 
 11. CONSULTAS POR WHATSAPP
 -------------------------

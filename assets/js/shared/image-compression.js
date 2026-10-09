@@ -1,6 +1,6 @@
 (function () {
-  const MAX_BYTES = 300000;
-  const MAX_DIMENSION = 1600;
+  const MAX_BYTES = 1500000;
+  const MAX_DIMENSION = 2400;
   const MAX_INPUT_BYTES = 10 * 1024 * 1024;
   const TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
   function validate(files) {
@@ -47,7 +47,8 @@
           context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         };
         draw();
-        for (const quality of [0.82, 0.74, 0.66]) {
+        // Preserve fabric, seams and labels before trading resolution for weight.
+        for (const quality of [0.92, 0.90, 0.88]) {
           let blob = await encode(canvas, type, quality);
           // Some browsers return PNG when WebP encoding is unavailable.
           if (blob.type !== type) {
@@ -61,9 +62,9 @@
             return outputFile(blob, file);
           }
         }
-        dimension = Math.max(1, Math.floor(dimension * 0.8));
+        dimension = Math.max(1, Math.floor(dimension * 0.85));
       }
-      throw new Error(`No se pudo reducir ${file.name} a 300 KB. Elegí una versión más pequeña.`);
+      throw new Error(`No se pudo preparar ${file.name} en alta calidad dentro de 1,5 MB. Elegí una versión más pequeña.`);
     } finally {
       bitmap.close();
       canvas.width = canvas.height = 1;

@@ -23,6 +23,9 @@ KEY = re.search(r'anonKey:\s*"([^\"]+)"', CONFIG).group(1)
 HOST = urlparse(URL).hostname
 OUTPUT = ROOT / "img" / "product-thumbs"
 MAP = ROOT / "assets" / "js" / "shared" / "product-thumbnails.js"
+COVER_VERSION = 2
+COVER_SIZE = (800, 1080)
+COVER_QUALITY = 88
 
 
 def read_limited(request, limit=10_000_000):
@@ -41,15 +44,15 @@ def existing_mapping():
 
 def local_thumbnail(entry, source):
     thumbnail = entry.get("thumbnail", "")
-    if entry.get("source") == source and re.fullmatch(r"img/product-thumbs/[0-9a-f-]+(?:-cover)?\.webp", thumbnail) and (ROOT / thumbnail).is_file():
+    if entry.get("cover_version") == COVER_VERSION and entry.get("source") == source and re.fullmatch(r"img/product-thumbs/[0-9a-f-]+(?:-cover)?\.webp", thumbnail) and (ROOT / thumbnail).is_file():
         return thumbnail
     return None
 
 
-def save_thumbnail(image, destination, size):
+def save_thumbnail(image, destination, size, quality=60):
     copy = image.copy()
     copy.thumbnail(size, Image.Resampling.LANCZOS)
-    copy.save(destination, "WEBP", quality=60, method=6)
+    copy.save(destination, "WEBP", quality=quality, method=6)
 
 
 def build_product(product, previous):
@@ -75,16 +78,19 @@ def build_product(product, previous):
                 with Image.open(io.BytesIO(raw)) as image:
                     image = ImageOps.exif_transpose(image).convert("RGB")
                     if index == 0 and not cover_path:
-                        cover_path = f"img/product-thumbs/{product_id}-{digest}-cover.webp"
-                        save_thumbnail(image, ROOT / cover_path, (400, 540))
-                    save_thumbnail(image, ROOT / preview_path, (128, 172))
+                        cover_digest = hashlib.sha256(f"{source}|cover-v{COVER_VERSION}|{COVER_SIZE}|q{COVER_QUALITY}".encode("utf-8")).hexdigest()[:20]
+                        destination = f"img/product-thumbs/{product_id}-{cover_digest}-cover.webp"
+                        save_thumbnail(image, ROOT / destination, COVER_SIZE, COVER_QUALITY)
+                        cover_path = destination
+                    if not (ROOT / preview_path).is_file():
+                        save_thumbnail(image, ROOT / preview_path, (128, 172))
             if index == 0:
-                result.update(source=source, thumbnail=cover_path)
+                result.update(source=source, thumbnail=cover_path, cover_version=COVER_VERSION)
             result["gallery"].append({"source": source, "thumbnail": preview_path})
         except Exception as error:
             print(f"Skipped {product_id} image {index + 1}: {error}", flush=True)
             if index == 0 and cover_path:
-                result.update(source=source, thumbnail=cover_path)
+                result.update(source=source, thumbnail=cover_path, cover_version=COVER_VERSION)
     if result["gallery"] or result.get("thumbnail"):
         print(f"Ready {product_id}: {len(result['gallery'])} previews", flush=True)
         return product_id, result

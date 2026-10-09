@@ -322,7 +322,17 @@ Inventario:
 - Contador de resultados y limpiar filtros.
 - Cambio de disponibilidad: available, reserved o payment_pending.
 - Edición de nombre, precio, categoría, talla, condición, descripción y medidas.
-- El editor actual no sustituye fotos ni cambia el destino/drop de la prenda.
+- El editor admite reemplazar el conjunto completo de fotos con 1 a 7 originales.
+  Sin selección conserva las fotos actuales. La primera nueva foto es la portada.
+- Usa la misma preparación en alta calidad del alta, con rutas nuevas sin upsert.
+- Registra las fotos anteriores para limpieza antes de guardar y comprueba status
+  y updated_at para detectar cambios de otra sesión. Si falla, revisa referencias
+  antes de limpiar cargas nuevas; protege las fotos que sí quedaron guardadas.
+- Limpia fotos anteriores sin referencias después del guardado; conserva tareas
+  pendientes si falla Storage. Los reintentos se ofrecen después de una hora.
+- Durante el guardado bloquea controles y cierre del editor. No cambia destino/drop.
+- El cambio de disponibilidad conserva la fila devuelta por el servidor, incluido
+  updated_at, para poder editar después sin un conflicto causado por la misma sesión.
 
 Descuentos:
 - Al bajar el precio conserva el mayor entre el precio anterior y original_price.
@@ -399,7 +409,8 @@ product-thumbnails.js -> window.ProductThumbnails
 image-compression.js -> window.ImageCompression
 - prepare(files, onProgress): valida toda la selección y procesa una foto a la vez.
 - compress(file): decodifica, reduce dimensiones/peso y entrega File listo para subir.
-- MAX_BYTES=300000; MAX_DIMENSION=1600.
+- MAX_BYTES=1500000; MAX_DIMENSION=2400.
+- Calidad de codificación: 0,92 / 0,90 / 0,88, antes de reducir dimensiones.
 - WebP preferido; JPEG alternativo si el navegador no codifica WebP.
 - Libera bitmap/canvas al terminar o fallar; rechaza fotos no preparables.
 
@@ -594,16 +605,20 @@ proyecto, archivo, resultado y verificación, sin credenciales.
 -----------------------------------------
 Hay tres tamaños/propósitos diferentes:
 1. Foto almacenada en Storage: la que muestra el detalle de la prenda.
-2. Portada local: WebP hasta 400x540 para tarjetas, cuando coincide la URL original.
+2. Portada local: WebP hasta 800x1080, calidad 88, sin ampliar la fuente.
+   Se usa en tarjetas cuando coincide la URL original; cover_version=2.
 3. Miniatura de galería: WebP hasta 128x172 para botones de vista previa de 62x62.
 
 Compresión de cargas nuevas:
 - Entrada JPG/PNG/WebP; 1 a 7 archivos, cada uno hasta 10 MiB.
-- Salida máxima 300000 bytes por foto y lado mayor de 1600 px.
+- Salida máxima 1500000 bytes (1,5 MB decimal) por foto y lado mayor de 2400 px.
+- Aplica tanto al alta como al reemplazo desde Editar.
+- Prefiere calidad WebP 0,92, 0,90 o 0,88 para conservar detalles de tejido/etiquetas.
 - Mantiene proporciones; no recorta ni amplía.
 - Conserva archivo pequeño si cumple límites y no requiere recompresión.
 - Prueba calidad WebP; usa JPEG si el navegador no produce WebP.
-- Si no alcanza el límite de peso, reduce dimensiones progresivamente.
+- Si no alcanza el límite de peso, reduce dimensiones un 15% por intento, hasta
+  seis intentos, manteniendo ese rango de calidad de codificación.
 - Un archivo ilegible/no reducible detiene la preparación, sin subir el original.
 - La compresión ocurre en el cliente; no transforma fotos históricas existentes.
 - Las subidas usan cacheControl=86400 y rutas nuevas, sin upsert.
@@ -614,12 +629,15 @@ Generación de miniaturas:
 - Lee config.js para URL y clave pública.
 - Consulta get_public_catalog: solo las prendas públicas actuales.
 - Acepta fuentes HTTPS del proyecto configurado y bucket público product-images.
-- Reutiliza portada existente si source coincide y su archivo existe.
+- Reutiliza portada existente si source y cover_version=2 coinciden y existe.
+- Regenera las portadas antiguas desde Storage; no amplía una portada comprimida.
 - La primera miniatura puede generarse desde esa portada sin descargar su original.
 - Descarga originales únicamente para miniaturas/portadas que faltan.
 - Procesa hasta cuatro prendas simultáneamente y limita las respuestas a 10 MB.
-- Respeta orientación EXIF, guarda WebP quality=60 y registra fallos por imagen.
-- Los nombres nuevos incluyen UUID de producto y hash SHA-256 de la URL original.
+- Respeta orientación EXIF; portadas WebP quality=88 y previews quality=60.
+- Registra fallos por imagen. No aumenta la resolución de una fuente pequeña.
+- Los nombres incluyen UUID y hash SHA-256; en portadas el hash también incorpora
+  versión, dimensiones y calidad para invalidar la caché al cambiar el perfil.
 - Reescribe product-thumbnails.js con el mapa del catálogo público consultado.
 - No borra automáticamente archivos locales de productos retirados del catálogo.
 
@@ -691,6 +709,8 @@ Cobertura por archivo:
   reemplazadas, fallback sin bucles y reapertura con una sola imagen.
 - image-compression.test.cjs: tamaños, formatos, fallback JPEG, validación completa,
   secuencia, errores y liberación de recursos.
+- admin-image-replacement.test.cjs: edición sin fotos, reemplazo, conflicto de
+  sesión, respuesta perdida, fallo de cola/Storage y protección de fotos compartidas.
 - admin-image-upload.test.cjs: bytes comprimidos, MIME/extensión, fallo de compresión
   sin subida de originales y cola/limpieza de cargas parciales.
 - drop-preview.test.cjs: autorización, productos del drop activo y errores de sesión.
@@ -704,7 +724,8 @@ Pruebas Python independientes:
   python tests/product-thumbnails.test.py
 - Necesitan Pillow; no están incluidas en npm test.
 - Verifican dimensiones WebP y reutilización sin descargas.
-- Comprueban portada histórica, cambio de foto/nombre de caché, fallo parcial y
+- Comprueban actualización de portada histórica, fuentes pequeñas sin ampliar,
+  cambio de foto/nombre de caché, fallo parcial y
   rechazo de fuentes privadas o de otro proyecto.
 - Usan temporales y respuestas simuladas, no el catálogo real.
 
@@ -862,7 +883,10 @@ Limitaciones observadas, no mejoras implementadas:
 - Archivos locales antiguos de miniaturas no se limpian automáticamente.
 - Sin Cron independiente de visitas ni actualización Realtime de inventario público.
 - Estado de disponibilidad no se convierte en reserva transaccional al consultar.
-- Sin edición de fotos de una prenda existente en el editor actual.
+- Las fotos antiguas con detalle perdido necesitan originales para recuperarlo.
+  El reemplazo del editor permite subirlos; aumentar píxeles no recupera información.
+- Un conjunto reemplazado no dispone de deshacer: se limpian las fotos anteriores
+  sin referencias. Conservar originales fuera del panel antes de sustituirlas.
 - El botón de alta conserva texto genérico AGREGAR A NEW DROP aun para destino
   público; la fila guardada sí respeta el destino seleccionado.
 - Sin configuración de hosting/caché versionada en los archivos revisados.
@@ -959,6 +983,73 @@ aplicaron migraciones ni se efectuaron cambios de inventario, Storage o credenci
 Pendiente operativo: gestionar fuera del repositorio la rotación de la contraseña
 que estaba en el manual anterior; su valor no se reproduce aquí.
 Publicación: cambios documentales locales; no se ejecutó un despliegue.
+
+
+[IMG-003] 2026-10-09 - Fotos de mayor calidad y reemplazo desde Editar
+Zona: America/Costa_Rica.
+Solicitud: mejorar la calidad de las prendas publicadas y agregar en Editar una
+opción para cargar otras fotos con buena calidad. El propietario supone que el
+cliente conserva los originales en el teléfono; no se han recibido esos archivos.
+Motivo: el panel limitaba cada foto a 300000 bytes/1600 px; las portadas locales
+se reducían adicionalmente a 400x540, calidad 60. La mejora usa mayor resolución
+y menor compresión, sin reconstruir ni inventar detalles de prendas.
+Base: commit 1340d05; git status inicial limpio, sin cambios ajenos que conservar.
+Archivos:
+- admin.html y assets/js/pages/admin.js.
+- assets/js/shared/image-compression.js y product-thumbnails.js.
+- tools/build-product-thumbnails.py y 20 portadas nuevas en img/product-thumbs/.
+- tests/image-compression.test.cjs, tests/admin-image-replacement.test.cjs,
+  tests/product-thumbnails.test.py y tests/compression-browser.html.
+- docs/documentacion-proyecto.txt, docs/manual-uso.txt y README.md.
+Pasos comprobados:
+1. Revisar documentación, calidad, manual, flujo de cargas, editor y generador.
+2. Consultar changelog y documentación oficial de upload/update de Supabase.
+3. Elevar preparación a 2400 px/1500000 bytes y calidad 0,92/0,90/0,88; conservar
+   archivos dentro de límites sin recomprimir y mantener fallback JPEG.
+4. Añadir selección opcional de 1 a 7 fotos en Editar. Sin selección conserva el
+   conjunto; con selección sube rutas nuevas, registra cola y guarda con control
+   de concurrencia. Limpieza posterior consulta referencias antes de borrar.
+5. Conservar updated_at recibido al cambiar disponibilidad para permitir editar
+   posteriormente en la misma sesión. Bloquear controles/cierre durante guardado.
+6. Versionar portadas a 800x1080/calidad 88; regenerar desde las fuentes guardadas
+   únicamente el catálogo público del proyecto ixkiwzhzcivwqjebuqzt.
+7. Actualizar instrucciones de operación, limitaciones y mantenimiento.
+Resultado del generador en esta ejecución:
+- 20 prendas públicas, 20 portadas versión 2 y 128 previews de galería.
+- Portadas resultantes de 614x819 o 768x1024: limitadas por la fuente, sin ampliar.
+- Total de portadas: 4523532 bytes; anteriores: 671468 bytes. Mayor calidad implica
+  más tráfico. Las 128 previews existentes se reutilizaron.
+- Tres fuentes consultadas como muestra: 768x1024/290302 bytes,
+  614x819/288193 bytes y 614x819/271911 bytes. Muestra de esta fecha,
+  no un diagnóstico individual de todas las fotografías ni un conteo permanente.
+Verificaciones:
+- npm test: 49 pruebas aprobadas, incluidas ocho de reemplazo de fotos.
+- Python con Pillow: 5 pruebas del generador aprobadas.
+- Microsoft Edge headless local, 1440x1000 y 390x844: formulario de edición
+  inspeccionado mediante capturas; selección y botones dentro del ancho visible.
+- Navegador con SDK/servicio simulados y red externa bloqueada: edición sin fotos,
+  reemplazo en published y new_drop, campos reiniciados al reabrir, estado conservado
+  y ausencia de errores JavaScript observados. También se comprobó editar después
+  de cambiar disponibilidad en la misma sesión. No probó Auth/RLS/Storage reales.
+- Compresión real en navegador: textura JPEG de 4370341 bytes -> WebP 1465726
+  bytes, 1734x1301. Foto local de 125251 bytes/736x1312 conservada sin recomprimir.
+- Consulta pública real de catálogo y descarga de fuentes confirmadas por generador;
+  no se ejecutó release_due_drops, ninguna escritura ni borrado en Supabase real.
+- git diff --check aprobado; revisados código, recursos nuevos y documentación.
+Limitaciones y pendientes:
+- Solicitar originales al cliente y reemplazar sus fotos tras publicar el panel.
+- Verificar un reemplazo con una cuenta autorizada en el servicio real después de
+  publicar; las pruebas de escritura utilizaron simulaciones y archivos de prueba.
+- Regenerar/publicar miniaturas después de futuras sustituciones públicas. Hasta
+  entonces el mapa antiguo no coincide con la URL nueva y se usa la foto de Storage.
+- Los conjuntos sustituidos se limpian; conservar originales antes de reemplazar.
+- No se añadieron migraciones ni se cambiaron RLS, permisos o configuración.
+- No se ejecutaron herramientas históricas de limpieza ni cambios en Camisadel10.
+Estado: implementado y verificado localmente; publicación pendiente.
+Publicación: no realizada. No se sustituyeron fotografías de productos reales.
+Reversión: recuperar conjunto compatible de HTML/JS/generador/mapa desde Git;
+las fotos ya sustituidas en el futuro no se recuperan mediante rollback de código.
+Documentación: secciones 07, 08, 12, 14 y 17, manual y README actualizados.
 
 
 20. PLANTILLA DE NUEVA ENTRADA
