@@ -76,6 +76,34 @@ En el proyecto de Supabase, abrir **SQL Editor** y ejecutar completo [`supabase-
 - Bucket público `product-images`: fotos de las prendas.
 - Políticas RLS para que visitantes consulten y solo administradores modifiquen contenido.
 
+### Reseñas de clientes y vista Apartado y vendido
+
+La pestaña adicional **Apartado y vendido** lista prendas `reserved` activas y `sold`,
+con filtro y cantidades. Conserva las pestañas existentes y usa los datos actuales;
+no necesita cambios de base propios ni registra clientes, abonos o vencimientos.
+
+Para habilitar las reseñas en instalaciones nuevas o existentes, después del esquema
+base ejecutá una vez
+[`supabase/migrations/20261102183624_customer_reviews.sql`](supabase/migrations/20261102183624_customer_reviews.sql)
+en el SQL Editor **del proyecto indicado en `config.js`**, antes de publicar el frontend.
+El esquema base por sí solo no crea `customer_reviews`. La migración añade tabla,
+restricciones, índice y RLS; no modifica prendas, drops ni Storage. Tener este archivo
+en Git no significa que se haya aplicado al servicio remoto.
+
+Publicá juntos `index.html`, `admin.html`, los dos CSS y los scripts nuevos
+`assets/js/shared/customer-reviews.js`, `assets/js/pages/reviews.js`,
+`assets/js/pages/admin-reviews.js` y el `assets/js/pages/admin.js` actualizado.
+Los visitantes envían nombre visible, 1–5 estrellas, comentario y tipo de experiencia;
+la base los guarda pendientes. **Reseñas** en el panel permite aceptar/publicar o
+rechazar/retirar. Solo el equipo autorizado en `admin_profiles` puede moderar; los
+visitantes solo leen las aprobadas. No hay correo, teléfono, verificación de compra,
+CAPTCHA ni límite de frecuencia del servidor. La moderación no impide envíos masivos.
+
+Verificá después de instalar: envío pendiente oculto, aprobación visible, rechazo
+oculto, ausencia de acceso a pendientes para visitantes/usuarios sin perfil, filtros
+y paginación. `npm test` incluye regresiones del flujo con respuestas simuladas;
+la comprobación contra Supabase real es independiente. El manual explica la operación.
+
 ### 2. Configurar la conexión del frontend
 
 En `config.js` se definen estas variables:

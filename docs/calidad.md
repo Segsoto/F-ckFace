@@ -26,4 +26,13 @@ Para cambios exclusivamente documentales, comprobar rutas, exactitud frente al c
 
 Las pruebas automatizadas usan respuestas simuladas y no validan servicios ni credenciales reales. La verificación manual con un drop de prueba completa esa cobertura.
 
+Para reseñas, comprobar envío con estrellas/consentimiento, validaciones y error que
+conserve el comentario; un envío pendiente debe permanecer oculto en la web. Probar
+aceptar, rechazar/retirar, filtros, paginación, actualización y cerrar sesión. Verificar
+con roles de prueba que un visitante o usuario sin perfil no pueda moderar ni leer
+pendientes/rechazadas. La migración adicional debe aplicarse antes de publicar el
+frontend; `npm test` valida simulaciones y no acredita RLS remoto. En Apartado y
+vendido, comprobar conteos, filtros y cambios de disponibilidad/venta/reversión sin
+duplicar ventas que conserven availability=reserved ni incluir payment_pending.
+
 El campo histórico `inseam_cm` se conserva en la base de datos y se rotula ANCHO DE PIERNA en el módulo actual de medidas. El cambio de etiqueta no convierte los valores históricos de entrepierna; corregir el significado de medidas guardadas requiere una decisión explícita sobre esos datos.

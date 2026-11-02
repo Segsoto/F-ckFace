@@ -89,12 +89,13 @@ h2 {
 }
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 1px;
   margin: 24px 0 15px;
   background: var(--black);
 }
 .admin-tab {
-  flex: 1;
+  flex: 1 1 160px;
   background: #d9d6ce;
   color: var(--black);
   border: 0;
@@ -373,6 +374,7 @@ button:disabled { opacity: .6; cursor: wait; }
     grid-template-columns: 1fr;
   }
   .admin-tabs {
+    flex-wrap: nowrap;
     overflow-x: auto;
   }
   .admin-tab {
@@ -418,4 +420,31 @@ button:disabled { opacity: .6; cursor: wait; }
   header span {
     display: none;
   }
+}
+.review-toolbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 18px; margin: 24px 0; }
+.review-toolbar label { min-width: 180px; }
+.tracking-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 18px; background: var(--paper); }
+.tracking-row img { width: 76px; height: 90px; object-fit: cover; }
+.tracking-row h3 { font: 700 24px/1.1 var(--condensed); margin: 9px 0 6px; overflow-wrap: anywhere; }
+.tracking-row p { color: #555; font-size: 10px; margin: 0; }
+.tracking-status { display: inline-block; padding: 5px 8px; font-size: 10px; border: 1px solid currentColor; }
+.tracking-status.is-reserved { color: #775000; background: #fff0c7; }
+.tracking-status.is-sold { color: #215333; background: #dcebdc; }
+.tracking-amount { display: grid; gap: 6px; text-align: right; }
+.tracking-amount span { font-size: 10px; color: #555; }
+.admin-reviews-list { display: grid; gap: 15px; margin: 20px 0; }
+.admin-reviews-list .review-card { border: 1px solid #aaa; padding: 24px; background: var(--paper); min-width: 0; }
+.review-stars { color: #775000; font-size: 24px; letter-spacing: .06em; }
+.review-comment { line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-author { display: grid; gap: 8px; overflow-wrap: anywhere; }
+.review-author span { color: #555; font-size: 10px; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+#reviewModerationMessage { line-height: 1.6; }
+#reviewModerationMessage[data-state="error"] { color: #8b1717; }
+#reservedSoldModule :focus-visible, #reviewsModule :focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .tracking-row { grid-template-columns: 60px minmax(0, 1fr); gap: 12px; padding: 12px; }
+  .tracking-row img { width: 60px; height: 75px; }
+  .tracking-amount { grid-column: 2; text-align: left; }
+  .review-actions button { width: 100%; }
 }

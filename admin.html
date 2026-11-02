@@ -55,6 +55,8 @@
           <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="dropModule" data-module="dropModule">CONFIGURAR DROP</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="publishedModule" data-module="publishedModule">PRENDAS PUBLICADAS</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="salesModule" data-module="salesModule">HISTORIAL DE VENTAS</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="reservedSoldModule" data-module="reservedSoldModule">APARTADO Y VENDIDO</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="reviewsModule" data-module="reviewsModule">RESEÑAS</button>
         </nav>
         <div class="admin-grid">
           <section class="panel drop-panel admin-module" id="dropModule" data-admin-module="dropModule" role="tabpanel" hidden>
@@ -192,6 +194,26 @@
           </div>
           <div id="deletedPhotoCleanup" class="deleted-photo-cleanup" hidden><p id="deletedPhotoCleanupHelp"></p><button id="retryDeletedPhotos" type="button" class="secondary">REINTENTAR LIMPIEZA DE FOTOS</button></div>
         </section>
+        <section class="inventory admin-module" id="reservedSoldModule" data-admin-module="reservedSoldModule" role="tabpanel" aria-labelledby="reservedSoldTitle" hidden>
+          <div class="inventory-title"><div><p class="eyebrow">SEGUIMIENTO DE PRENDAS</p><h2 id="reservedSoldTitle">APARTADO Y VENDIDO</h2></div></div>
+          <p class="subtle">Revisá las prendas apartadas y vendidas. Los cambios de disponibilidad se realizan desde Prendas publicadas; las ventas se administran en Historial de ventas.</p>
+          <div class="review-toolbar">
+            <p id="reservedSoldCount" role="status"></p>
+            <label>MOSTRAR<select id="reservedSoldFilter"><option value="">TODAS</option><option value="reserved">APARTADAS</option><option value="sold">VENDIDAS</option></select></label>
+          </div>
+          <div id="reservedSoldList" class="inventory-list" aria-live="polite"></div>
+        </section>
+        <section class="inventory admin-module" id="reviewsModule" data-admin-module="reviewsModule" role="tabpanel" aria-labelledby="adminReviewsTitle" hidden>
+          <div class="inventory-title"><div><p class="eyebrow">OPINIONES DE CLIENTES</p><h2 id="adminReviewsTitle">RESEÑAS</h2></div></div>
+          <p class="subtle">Solo las reseñas aceptadas aparecen en la web. Podés rechazar una reseña publicada para retirarla.</p>
+          <div class="review-toolbar">
+            <label>ESTADO<select id="reviewStatusFilter"><option value="pending">PENDIENTES</option><option value="approved">PUBLICADAS</option><option value="rejected">RECHAZADAS</option></select></label>
+            <button type="button" id="refreshReviews" class="secondary">ACTUALIZAR RESEÑAS</button>
+          </div>
+          <p id="reviewModerationMessage" role="status" aria-live="polite"></p>
+          <div id="adminReviewsList" class="admin-reviews-list" aria-live="polite"></div>
+          <button type="button" id="moreAdminReviews" class="secondary" hidden>VER MÁS RESEÑAS</button>
+        </section>
         <section class="inventory admin-module" id="salesModule" data-admin-module="salesModule" role="tabpanel" hidden>
           <div class="inventory-title"><div><p class="eyebrow">VENTAS</p><h2>HISTORIAL DE VENTAS</h2></div></div>
           <div class="sales-summary"><div><span>INGRESOS BRUTOS REGISTRADOS</span><strong id="salesTotal">₡0</strong></div><div><span>PRENDAS VENDIDAS</span><strong id="salesCount">0</strong></div></div>
@@ -256,6 +278,8 @@
     <script src="assets/js/shared/product-thumbnails.js"></script>
     <script src="assets/js/shared/sales-report.js"></script>
     <script src="assets/js/shared/sale-photos.js"></script>
+    <script src="assets/js/shared/customer-reviews.js"></script>
+    <script src="assets/js/pages/admin-reviews.js"></script>
     <script src="assets/js/pages/admin.js"></script>
   </body>
 </html>

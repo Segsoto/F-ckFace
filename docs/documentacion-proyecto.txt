@@ -70,7 +70,7 @@ Capas:
 - JavaScript de página: eventos, lectura de datos y actualización de la interfaz.
 - JavaScript compartido: medidas, imágenes, compresión, ventas y auxiliares.
 - Supabase Auth: inicio de sesión de administradores.
-- Supabase PostgreSQL: productos, drops, autorización y colas de limpieza.
+- Supabase PostgreSQL: productos, drops, autorización, reseñas y colas de limpieza.
 - Supabase Storage: fotos originales o comprimidas de las prendas.
 - Hosting estático: HTML, CSS, JavaScript, imágenes locales y videos.
 - Herramientas locales: servidor de desarrollo, miniaturas y limpieza histórica.
@@ -147,6 +147,8 @@ assets/js/pages/:
 - app.js: comportamiento de index.html.
 - newdrop.js: acceso exclusivo y vista previa administrativa.
 - admin.js: gestión de sesiones, drops, publicaciones, inventario y ventas.
+- reviews.js: formulario y lectura paginada de reseñas públicas aprobadas.
+- admin-reviews.js: consulta paginada y moderación de reseñas con sesión del panel.
 
 assets/js/shared/:
 - measurements.js: campos, editor y presentación de medidas.
@@ -158,6 +160,7 @@ assets/js/shared/:
 - sale-photos.js: planificación y ejecución de limpieza de fotos.
 - password-toggle.js: botones para mostrar y ocultar contraseñas.
 - page-loader.js: overlay de carga y límite de espera.
+- customer-reviews.js: validación, HTML escapado y consultas/escrituras de reseñas.
 
 assets/css/:
 - styles.css: tienda, New Drop, galería y adaptación de diseño.
@@ -176,6 +179,7 @@ SQL:
 - drop-management.sql: gestión de drops y consulta administrativa de contraseñas.
 - sleeve-length.sql: columna sleeve_length_cm y recarga de esquema.
 - supabase/migrations/20260912033744_category_measurements.sql: medidas adicionales.
+- supabase/migrations/20261102183624_customer_reviews.sql: reseñas y permisos RLS.
 
 Herramientas, pruebas y registros:
 - tools/dev-server.cjs: servidor estático de desarrollo.
@@ -225,6 +229,24 @@ WhatsApp:
 - wa.me precarga texto; el visitante realiza el envío en WhatsApp.
 - No adjunta archivos ni genera una miniatura específica del producto en WhatsApp.
 - Compartir el enlace no reserva automáticamente la prenda.
+
+Reseñas de servicio y entregas:
+- Sección #resenas antes del contacto, con enlaces en navegación de escritorio/móvil.
+- Formulario: nombre visible/apodo de 1 a 60 caracteres, calificación entera de 1 a
+  5 estrellas, servicio/entrega/ambos y comentario de 10 a 1500 caracteres.
+- Consentimiento obligatorio para publicar nombre visible, comentario y calificación;
+  el formulario indica no incluir datos del pedido, teléfono o dirección.
+- Inserta únicamente esos cuatro campos; la base asigna pending y sus fechas.
+- No solicita la fila insertada: un visitante no puede leer reseñas pendientes.
+- Tras envío confirmado, limpia el formulario e informa que falta aprobación.
+  Ante error conserva el texto y ofrece reintentar, sin afirmar que fue recibido.
+- La lectura solicita solo approved; muestra seis reseñas por página, ordenadas por
+  created_at e id descendentes, con VER MÁS y reintento ante fallo de lectura.
+- Nombre y comentario se codifican como texto; no se interpretan como HTML.
+- El cliente Supabase de reseñas públicas no persiste ni renueva sesiones y usa una
+  clave de almacenamiento propia. No necesita cuenta del comprador.
+- Incluye un campo señuelo oculto; no hay CAPTCHA ni límite de frecuencia en servidor.
+  La moderación limita la publicación, no evita por sí sola envíos masivos.
 
 
 06. NEW DROP Y VISTA PREVIA ADMINISTRATIVA
@@ -288,7 +310,30 @@ Navegación por módulos:
 - Alta/publicación de prendas: publishModule.
 - Inventario activo y filtros: publishedModule.
 - Historial, ingresos y fichas: salesModule.
+- Vista conjunta Apartado y vendido: reservedSoldModule.
+- Moderación de reseñas: reviewsModule.
 El inventario activo incluye new_drop y published aunque su ID sea publishedModule.
+
+Apartado y vendido:
+- Añade una pestaña sin sustituir las existentes. Lista prendas con status=sold o
+  availability=reserved y status distinto de sold, sin duplicar ventas apartadas.
+- Filtro Todas/Apartadas/Vendidas, cantidades, foto, nombre, categoría, talla y precio.
+  En ventas muestra sale_price y fecha de venta en hora de Costa Rica.
+- No incluye payment_pending ni registra clientes, abonos, vencimientos o liberación
+  automática. La disponibilidad se cambia en inventario; las ventas en historial.
+- Recalcula tras cambios locales de disponibilidad, venta, reversión o eliminación;
+  los filtros del inventario no restringen esta vista. Recargar para cambios ajenos.
+
+Moderación de reseñas:
+- Se carga al entrar a RESEÑAS después de comprobar autorización en admin_profiles.
+- Pendientes por defecto; filtros Publicadas/Rechazadas, actualización y páginas de
+  veinte reseñas con VER MÁS. La consulta falla de manera independiente al inventario.
+- ACEPTAR Y PUBLICAR cambia a approved; RECHAZAR cambia a rejected. Una publicada
+  puede rechazarse para retirarla; una rechazada puede aceptarse después.
+- Solo modifica status y reviewed_at; condiciona por id y estado leído para detectar
+  una decisión concurrente. Un fallo pide actualizar la lista antes de reintentar.
+- Bloquea acciones durante la decisión y descarta respuestas de consultas anteriores
+  al cambiar filtros o salir. Cerrar sesión borra la lista de reseñas del navegador.
 
 Programación del drop:
 - Nombre, apertura exclusiva, apertura pública, contraseña y nota opcional.
@@ -449,12 +494,22 @@ page-loader.js -> window.StorePageLoader
 - Bloquea Tab mientras el overlay está activo y evita quedar esperando por siempre.
 - Se carga temprano en index.html y NewDrop.html; no interviene en admin.html.
 
+customer-reviews.js -> window.CustomerReviews y exportación CommonJS en Node
+- payload valida límites y permite solo nombre visible, estrellas, comentario y tipo.
+- escape/card codifican contenido de clientes, incluyendo comillas en HTML.
+- list filtra estado y pagina con una fila adicional para detectar si hay más.
+- submit inserta sin SELECT; moderate guarda una decisión condicionada por estado.
+- El helper safe del panel también codifica comillas al construir atributos HTML.
+  Este ajuste no acredita la corrección de todos los hallazgos de la auditoría previa.
+
 Orden de scripts:
 - Página pública: loader temprano; después SDK, config, medidas, imágenes,
   mapa de miniaturas y app.js.
 - New Drop: loader temprano; después SDK, config, toggle de contraseña, medidas,
   imágenes, mapa, vista previa y newdrop.js.
 - Admin: SDK, config, toggle, medidas, compresión, mapa, reportes, fotos y admin.js.
+  Entre fotos y admin.js se cargan customer-reviews.js y admin-reviews.js.
+- La tienda carga customer-reviews.js y reviews.js después de app.js.
 Conservar este orden al incorporar dependencias globales nuevas.
 
 
@@ -508,6 +563,17 @@ public.drop_passwords:
 El hash en drops no es la única representación de esa contraseña: existe esta copia
 en texto consultable para el panel. No describir el sistema como solo hash.
 
+public.customer_reviews (requiere su migración adicional):
+- id UUID y created_at con valores predeterminados en PostgreSQL.
+- customer_name: nombre visible/apodo, 1 a 60 caracteres tras trim.
+- rating: smallint, 1 a 5; comment: 10 a 1500 caracteres tras trim.
+- experience: service, delivery o both.
+- status: pending por defecto, approved o rejected.
+- reviewed_at: null mientras está pendiente; obligatorio tras aceptar/rechazar.
+- Índice compuesto (status, created_at desc, id desc) para filtros/paginación.
+- No almacena correo, teléfono, dirección, usuario comprador ni vínculo a una venta.
+  No verifica identidad ni compra. La publicación requiere decisión administrativa.
+
 public.deleted_product_images:
 - id: identidad de la tarea de limpieza.
 - product_id: UUID de referencia de la prenda o provisional de una carga.
@@ -555,6 +621,16 @@ Protecciones descritas por los SQL del repositorio:
 - Algunas funciones son SECURITY DEFINER: revisar permisos, search_path y resultado
   completo al editarlas; no suponer que el frontend impone su seguridad.
 
+Permisos de customer_reviews, definidos por su migración adicional:
+- RLS activo; anon/authenticated leen approved. Solo authenticated con fila propia
+  en admin_profiles puede leer todos los estados o moderar.
+- INSERT público limitado a customer_name, rating, comment y experience, con política
+  que exige pending y reviewed_at=null. No se pueden fijar id, estado ni fechas.
+- UPDATE concede solo status/reviewed_at a authenticated y exige administrador en
+  USING y WITH CHECK; no permite reescribir la opinión. No hay permiso DELETE público.
+- La migración revoca los permisos iniciales y concede explícitamente los necesarios.
+  No incorpora funciones SECURITY DEFINER ni cambia permisos de productos/Storage.
+
 Storage:
 - Bucket product-images, configurado como público en supabase-schema.sql.
 - Inserción/actualización exige administrador y prefijo del UUID de quien sube.
@@ -573,6 +649,19 @@ Gestión de accesos:
 No afirmar que MFA, límites de intentos o registros públicos estén configurados
 porque aparezcan como recomendación en la documentación: requieren revisión real.
 
+Auditoría acotada del 2026-10-21 (sesiones e inyección):
+- Informe y órdenes: docs/auditoria-seguridad-2026-10-21.md, de uso interno.
+- Renderizado de atributos de prendas vulnerable a XSS en pruebas locales con datos
+  ficticios; no se comprobó escritura de un visitante ni robo de una sesión real.
+- SDK servido en esa fecha: 2.118.0, sesión persistente en almacenamiento accesible
+  a JavaScript. Tienda, New Drop y panel comparten origen y configuración Auth.
+- Login revisado envía datos a Auth sin concatenación SQL; autorización real de
+  usuarios autenticados sin perfil y políticas desplegadas todavía sin comprobar.
+- Ajustes públicos de Auth observados permiten registro; MFA no está implementado
+  en el flujo versionado. No se modificó la configuración del servicio.
+- Documentos operativos accesibles por HTTP 200 en esa fecha: excluir docs/ del
+  hosting antes de publicar este informe o futuras actualizaciones documentales.
+
 
 11. SCRIPTS SQL E INSTALACIÓN
 ----------------------------
@@ -581,6 +670,8 @@ Instalación nueva:
 - Incluye tablas, ampliaciones de columnas, RLS, bucket, RPC públicos y gestión del
   drop. Usa pgcrypto instalado en el esquema extensions.
 - Configurar Auth, autorización del administrador y config.js.
+- Aplicar también supabase/migrations/20261102183624_customer_reviews.sql después
+  del esquema base; customer_reviews no forma parte de supabase-schema.sql.
 - Probar los flujos antes de publicar los archivos web.
 
 Instalación existente:
@@ -591,6 +682,9 @@ Instalación existente:
 - drop-management.sql añade nombre del drop, drop_passwords y RPC de gestión.
 - 20260912033744_category_measurements.sql añade medidas por categoría.
 - sleeve-length.sql añade largo de mangas.
+- 20261102183624_customer_reviews.sql crea únicamente reseñas, índice y permisos;
+  aplicarla una vez en el proyecto de config.js antes de publicar los nuevos assets.
+  La vista Apartado y vendido usa los campos actuales y no requiere migración propia.
 - Aplicar únicamente los cambios pertinentes que no estén ya incorporados y
   comprobar compatibilidad con datos existentes.
 - notify pgrst, 'reload schema' permite que la API recoja columnas y RPC actualizados
@@ -703,6 +797,8 @@ Pruebas Node, sin instalar dependencias:
 Ejecuta node --test tests/*.test.cjs.
 
 Cobertura por archivo:
+- customer-reviews.test.cjs: validación, exclusión de campos de moderación del envío,
+  escape HTML, paginación, errores, decisión concurrente y vista conjunta de prendas.
 - store.test.cjs: recursos locales, configuración compartida, portadas/miniaturas,
   acceso New Drop, redirección de productos públicos, contador, filtros y enlaces.
 - product-gallery.test.cjs: previews locales, selección de originales, orden/fotos
@@ -896,6 +992,15 @@ Limitaciones observadas, no mejoras implementadas:
 - Camisadel10 contiene referencias a recursos que no están en esa carpeta.
 Registrar una mejora como pendiente no significa que esté autorizada o realizada.
 
+Seguridad, revisión acotada del 2026-10-21:
+- WEB-001: corregir interpolaciones de datos de prendas en atributos HTML; el uso
+  de textContent seguido de innerHTML no escapa comillas para ese contexto.
+- WEB-002: verificar cierre de la rotación histórica documentada en DOC-002.
+- WEB-003 a WEB-006: MFA y registro, cabeceras, dependencia reproducible y exclusión
+  de documentos internos. Ver evidencia, prioridades y criterios en el informe.
+- No se ha demostrado compromiso ni acceso administrativo ajeno al equipo. La
+  evaluación queda incompleta sin cuentas de prueba y revisión del servicio real.
+
 
 18. DOCUMENTOS COMPLEMENTARIOS Y APLICACIÓN SEPARADA
 ---------------------------------------------------
@@ -903,6 +1008,8 @@ Registrar una mejora como pendiente no significa que esté autorizada o realizad
 - docs/manual-uso.txt: pasos de operación del panel y mantenimiento ordinario.
 - docs/calidad.md: responsabilidades y comprobaciones antes de aceptar cambios.
 - docs/limpieza-fotos.md: auditoría histórica y herramienta específica de limpieza.
+- docs/auditoria-seguridad-2026-10-21.md: evaluación acotada de XSS, sesiones y
+  acceso al panel; informe interno con hallazgos abiertos y órdenes verificables.
 - AGENTS.md: reglas de actualización documental para trabajo posterior.
 La descripción de estado actual se mantiene aquí; los procedimientos operativos
 también deben reflejarse en el manual cuando cambien.
@@ -1050,6 +1157,105 @@ Publicación: no realizada. No se sustituyeron fotografías de productos reales.
 Reversión: recuperar conjunto compatible de HTML/JS/generador/mapa desde Git;
 las fotos ya sustituidas en el futuro no se recuperan mediante rollback de código.
 Documentación: secciones 07, 08, 12, 14 y 17, manual y README actualizados.
+
+
+[SEG-004] 2026-10-21 - Auditoría acotada de sesiones e inyección
+Zona: America/Costa_Rica.
+Solicitud: evaluar secuestro de sesión e inyección para entrar al panel mediante
+la skill auditor-web-profesional; no se solicitó implementar correcciones.
+Motivo: distinguir fallos reproducibles, precondiciones y controles pendientes.
+Base: commit d944fbf; Git limpio al iniciar, sin cambios ajenos que conservar.
+Archivos: docs/auditoria-seguridad-2026-10-21.md y este registro central.
+Pasos y verificaciones comprobados:
+1. Leer instrucciones, documentación, calidad, manual y skill con sus referencias.
+2. Revisar login, autorización, salida HTML, sesiones, SQL y dependencia pública.
+3. Comparar seis recursos públicos HTML/JS con los locales: coincidencia tras
+   normalizar saltos de línea y espacios extremos; no acredita SQL desplegado.
+4. Observar cabeceras: HSTS presente, CSP y X-Frame-Options ausentes en la muestra.
+   GET de dos documentos internos: HTTP 200 y coincidencia con la base local.
+   Ajustes públicos de Auth: disable_signup=false. SDK resuelto a 2.118.0.
+5. Edge headless, perfil temporal sin sesión, 1440x1000 y 390x844: login visible y
+   panel oculto en DOM. No se envió el formulario ni se inició sesión.
+6. Funciones de renderizado extraídas, datos sintéticos y conexiones de la página
+   bloqueadas: cuatro casos locales ejecutaron manejadores y leyeron un marcador
+   ficticio. SDK local: persistencia/renovación activas y almacenamiento legible.
+7. Informe con WEB-001 a WEB-006, órdenes y criterios de aceptación; sin payloads,
+   tokens reales ni contraseñas. Evidencias fuera del árbol publicable del proyecto.
+Resultado: XSS reproducido localmente; potencial acceso a sesiones sustentado, sin
+demostrar escritura externa, extracción de tokens reales o compromiso en curso.
+Login sin concatenación SQL observada. Rotación histórica sin evidencia de cierre.
+Limitaciones: sin credenciales de prueba ni acceso de gestión al Supabase actual;
+no se probaron escrituras, roles autenticados reales, expiración/revocación ni MFA.
+Incidencias: navegador aislado inicialmente falló por restricciones de ejecución;
+perfil temporal autorizado permitió la prueba. Primer archivo de prueba tuvo un
+error de comillas; se corrigió antes de obtener los cuatro resultados verificados.
+Pruebas: auditorías aisladas de navegador/HTTP; npm test no ejecutado por alcance
+exclusivamente documental. Revisión final de enlaces, ausencia de credenciales y
+git diff --check completada antes de terminar.
+Cambios de datos/SQL/configuración: ninguno. No se ejecutaron limpiezas históricas.
+Estado: auditoría parcial documentada, hallazgos abiertos; correcciones pendientes.
+Publicación: no realizada. Excluir docs/ del hosting antes de publicar documentos.
+Pendientes: autorización expresa para corregir; verificar rotación histórica y
+políticas reales con cuentas de prueba. Sin cambios en Camisadel10.
+Reversión: retirar los dos cambios documentales de esta entrada; no hay datos que
+revertir ni configuración funcional alterada.
+Manual/README: sin cambios porque no se implementó un procedimiento/configuración.
+
+
+[CAMBIO-RESEÑAS-20261102] 2026-11-02 - Apartado y vendido, reseñas moderadas
+Hora/zona: America/Costa_Rica; comprobaciones locales del 2026-11-02.
+Solicitud: añadir una pestaña conjunta para apartadas/vendidas, solo listado de
+apartadas, y permitir reseñas de clientes con 1 a 5 estrellas y aceptación/rechazo.
+Motivo: revisión conjunta de prendas y publicación controlada de opiniones sobre
+servicio y entregas. Se conservaron las pestañas y los procedimientos existentes.
+Base: d944fbf. Cambios previos conservados: documentación central e informe sin
+seguimiento docs/auditoria-seguridad-2026-10-21.md; no se modificó ese informe.
+Archivos: admin.html, index.html, assets/css/admin.css, assets/css/styles.css,
+assets/js/pages/admin.js, assets/js/pages/reviews.js, assets/js/pages/admin-reviews.js,
+assets/js/shared/customer-reviews.js, tests/customer-reviews.test.cjs,
+supabase/migrations/20261102183624_customer_reviews.sql, README.md,
+docs/manual-uso.txt, docs/calidad.md y este documento.
+Pasos comprobados:
+1. Leer instrucciones, documentación, manual y guías de interfaz/Supabase. Revisar
+   Git, código de inventario/ventas y documentación vigente de RLS y privilegios.
+2. Añadir vista conjunta derivada de los estados actuales, filtro y cantidades;
+   sincronizar cambios de disponibilidad sin registrar datos adicionales de clientes.
+3. Crear formulario accesible con estrellas, consentimiento y estados de envío;
+   añadir lectura paginada pública y moderación paginada con control de concurrencia.
+4. Generar migración con Supabase CLI, añadir tabla, restricciones y permisos por
+   rol/columna con RLS. No se aplicó al servicio remoto ni se alteró config.js.
+5. npm test: 56 pruebas aprobadas, incluidas siete nuevas regresiones. Las 49 previas
+   también pasaron antes de incorporar las nuevas. No se ejecutaron borrados reales.
+6. PostgreSQL local mediante PGlite, con roles anon/authenticated y admin_profiles
+   de prueba: 25 comprobaciones aprobadas, incluidas escritura pendiente, restricciones,
+   invisibilidad de pendientes/rechazadas y moderación exclusiva del administrador.
+7. Edge headless, SDK real Supabase JS y solicitudes REST interceptadas hacia PGlite
+   con RLS: envío inválido, fallo de envío conservando texto, envío pendiente, aprobación,
+   publicación, rechazo/retirada, recuperación de lectura y salida de sesión comprobados.
+   Vista conjunta: dos prendas ficticias, filtro y retirada al liberar un apartado.
+   Selección de estrellas con flechas del teclado comprobada. Sin errores pageerror;
+   capturas revisadas y ancho sin desbordamiento a 1440, 768 y 390 px.
+   Datos sintéticos y evidencias guardados fuera del árbol publicable, en temporales.
+Incidencia: el primer selector del botón de login encontró también el ojo de la
+contraseña; se corrigió el selector de la prueba y el recorrido completo pasó.
+Resultado: funciones implementadas y verificadas localmente. La vista no duplica
+ventas con disponibilidad reserved, no incluye payment_pending y no agrega abonos.
+Seguridad: contenido de reseñas codificado como texto; helper safe del panel codifica
+también comillas. No equivale a cerrar toda la auditoría de seguridad anterior.
+Limitaciones: Supabase conectado no lista el proyecto actual ixkiwzhzcivwqjebuqzt
+y la consulta directa del proyecto fue denegada por permisos. No se aplicó migración
+ni se verificaron RLS/roles reales de producción. Las pruebas
+REST no usan PostgREST remoto. No hay CAPTCHA, límite de frecuencia de servidor,
+verificación de compra o identidad, ni garantía contra duplicados por respuesta perdida.
+Estado/publicación: implementado y probado localmente; sin publicación ni commit.
+Pendientes: aplicar la migración en el proyecto configurado, publicar HTML/CSS/JS
+juntos y verificar allí envío/moderación con cuentas y datos de prueba autorizados.
+Reversión: restaurar archivos web anteriores; conservar customer_reviews para no
+perder opiniones. No borrar la tabla sin respaldo y autorización específicos.
+Documentación: se actualizaron secciones afectadas, README, calidad y manual.
+Revisión final: código y documentación contrastados con el diff; npm test nuevamente
+con 56 aprobadas y git diff --check sin errores. Se retiró el archivo temporal de
+versión que generó Supabase CLI; no se añadieron dependencias npm al proyecto.
 
 
 20. PLANTILLA DE NUEVA ENTRADA

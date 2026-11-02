@@ -1,6 +1,6 @@
 MANUAL DE USO - F-CK FACE
 ========================
-Actualizado: 2026-10-09, hora de Costa Rica.
+Actualizado: 2026-11-02, hora de Costa Rica.
 Documentación técnica y registro de cambios: docs/documentacion-proyecto.txt.
 Este manual no debe contener contraseñas ni claves administrativas.
 
@@ -23,6 +23,8 @@ La contraseña comunitaria de un drop es independiente de la contraseña del pan
 - Publicación: agregar prendas al New Drop o directamente a la tienda pública.
 - Inventario: buscar, filtrar, editar, cambiar disponibilidad, vender o eliminar.
 - Historial: consultar ventas, ingresos brutos, fichas y reversiones.
+- Apartado y vendido: revisar juntas las prendas apartadas y vendidas, con filtro.
+- Reseñas: aceptar o rechazar opiniones de clientes antes de publicarlas.
 
 3. PROGRAMAR UN DROP
 -------------------
@@ -212,7 +214,48 @@ Actualizar este manual si cambia una operación del panel.
 Consultar README.md y docs/calidad.md para instalación y verificación técnica.
 Los cambios en archivos locales no implican que estén publicados en el sitio.
 
-16. SOPORTE
+16. APARTADO Y VENDIDO
+---------------------
+1. Abrir APARTADO Y VENDIDO en el panel. En móvil, deslizar la barra de pestañas.
+2. Revisar cantidades y la lista conjunta; usar TODAS, APARTADAS o VENDIDAS.
+3. Cada pieza muestra foto, nombre, categoría y talla. Las apartadas muestran precio
+   publicado; las vendidas muestran monto recibido y fecha de venta en Costa Rica.
+4. Para cambiar disponibilidad, volver a PRENDAS PUBLICADAS. Para administrar una
+   venta, usar HISTORIAL DE VENTAS. La lista conjunta se actualiza tras cambios locales;
+   recargar la página para incorporar cambios de otra persona del equipo.
+
+Solo APARTADA se incluye como apartado; EN PROCESO no se incluye. No se registran
+cliente, abono, saldo ni vencimiento, ni se liberan prendas automáticamente.
+
+17. RESEÑAS DE SERVICIO Y ENTREGAS
+---------------------------------
+Cliente:
+1. En la tienda, abrir RESEÑAS desde el menú o bajar hasta TU EXPERIENCIA CUENTA.
+2. Escribir nombre visible/apodo, elegir servicio, entrega o ambos y 1 a 5 estrellas.
+   Las estrellas también se seleccionan con Tab y las flechas del teclado.
+3. Escribir un comentario de 10 a 1500 caracteres, sin teléfono, dirección o datos
+   del pedido, y marcar el consentimiento para publicación.
+4. ENVIAR RESEÑA muestra confirmación de recepción pendiente de aprobación. Un error
+   conserva el texto; revisar datos/conexión antes de reintentar. La respuesta puede
+   perderse después del guardado: no enviar repetidamente si hay dudas de recepción.
+
+Administración:
+1. Entrar al panel y abrir RESEÑAS; muestra PENDIENTES inicialmente.
+2. Leer nombre, estrellas, tipo y comentario. ACEPTAR Y PUBLICAR permite verlo en
+   la web; RECHAZAR lo conserva sin mostrarlo al público.
+3. Usar PUBLICADAS o RECHAZADAS para revisar decisiones. RECHAZAR Y RETIRAR oculta
+   una publicada en la siguiente consulta pública; una rechazada puede aceptarse.
+4. ACTUALIZAR RESEÑAS incorpora envíos nuevos o cambios de otra sesión. VER MÁS
+   RESEÑAS trae otra página: veinte por carga en el panel y seis en la tienda.
+5. Si falla una decisión, actualizar y comprobar el estado antes de reintentar.
+
+Las reseñas no aparecen públicamente por el solo envío. No se editan sus textos
+desde el panel. El formulario no comprueba identidad ni compra y no implementa
+CAPTCHA; revisar el contenido antes de aceptarlo. Nunca publicar datos personales
+incluidos accidentalmente. Para usar esta función, el encargado técnico debe aplicar
+la migración de reseñas indicada en README y publicar los archivos web relacionados.
+
+18. SOPORTE
 -----------
 Informar pantalla, operación, mensaje de error y momento del problema.
 No enviar contraseñas, claves privadas ni capturas que las muestren.

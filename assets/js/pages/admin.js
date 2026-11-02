@@ -62,6 +62,7 @@
         item.classList.toggle("is-active", selected);
         item.setAttribute("aria-selected", String(selected));
       });
+      if (selectedModule === "reviewsModule") window.AdminReviews.load();
     });
   });
   async function isAdmin() {
@@ -87,6 +88,7 @@
         loginView.hidden = true;
         adminView.hidden = false;
         await loadData();
+        window.AdminReviews.init(client);
       } else {
         loginView.hidden = false;
         adminView.hidden = true;
@@ -154,6 +156,7 @@
       await client.auth.signOut();
       document.querySelectorAll('.password-field input').forEach(input => { input.value = ''; input.dispatchEvent(new Event('hide-password')); });
       activeDrop = null;
+      window.AdminReviews.clear();
       await setup();
     });
   document.getElementById("images").addEventListener("change", (event) => {
@@ -412,7 +415,23 @@
       `<article class="inventory-row"><img src="${safe(product.image_urls?.[0] || "img/logo1.jpg")}" alt="" loading="lazy" decoding="async"><div><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")} · ₡${Number(product.price).toLocaleString("es-CR")}${product.original_price ? ` <s>₡${Number(product.original_price).toLocaleString("es-CR")}</s>` : ""}</p><span class="status ${safe(product.status)}">${product.status === "new_drop" ? "NEW DROP" : "PUBLICADA"}</span></div><select class="availability" data-availability="${safe(product.id)}" aria-label="Estado de ${safe(product.name)}"><option value="available" ${product.availability === "available" ? "selected" : ""}>DISPONIBLE</option><option value="reserved" ${product.availability === "reserved" ? "selected" : ""}>APARTADA</option><option value="payment_pending" ${product.availability === "payment_pending" ? "selected" : ""}>EN PROCESO</option></select><button class="edit" data-edit="${safe(product.id)}" type="button">EDITAR</button><button class="sold" data-sold="${safe(product.id)}" type="button">VENDIDA</button><button class="delete" data-delete="${safe(product.id)}" type="button">ELIMINAR</button></article>`
     ).join("") || "<p>NO HAY PIEZAS TODAVÍA.</p>";
     renderSales();
+    renderReservedSold();
   }
+  function renderReservedSold() {
+    const reserved = products.filter((product) => product.status !== "sold" && product.availability === "reserved");
+    const sold = products.filter((product) => product.status === "sold");
+    const filter = document.getElementById("reservedSoldFilter").value;
+    const visible = [...reserved, ...sold].filter((product) => !filter || (filter === "sold" ? product.status === "sold" : product.status !== "sold"));
+    document.getElementById("reservedSoldCount").textContent = `${reserved.length} APARTADAS · ${sold.length} VENDIDAS`;
+    document.getElementById("reservedSoldList").innerHTML = visible.map((product) => {
+      const isSold = product.status === "sold";
+      const firstImage = product.image_urls?.[0] || "img/logo1.jpg";
+      const cover = window.ProductThumbnails?.[product.id];
+      const image = cover?.source === firstImage ? cover.thumbnail : firstImage;
+      return `<article class="tracking-row"><img src="${safe(image)}" alt="" loading="lazy" decoding="async"><div><span class="tracking-status ${isSold ? "is-sold" : "is-reserved"}">${isSold ? "VENDIDA" : "APARTADA"}</span><h3>${safe(product.name)}</h3><p>${safe(product.category)} · ${safe(product.size || "Sin talla")}</p></div><div class="tracking-amount"><strong>₡${Number(isSold ? product.sale_price : product.price).toLocaleString("es-CR")}</strong><span>${isSold ? "Monto de venta" : "Precio publicado"}</span>${isSold && product.sold_at ? `<span>${safe(new Date(product.sold_at).toLocaleDateString("es-CR", { timeZone: "America/Costa_Rica", dateStyle: "medium" }))}</span>` : ""}</div></article>`;
+    }).join("") || "<p>NO HAY PRENDAS PARA MOSTRAR.</p>";
+  }
+  document.getElementById("reservedSoldFilter").addEventListener("change", renderReservedSold);
   function renderSales() {
     const sold = products.filter((product) => product.status === "sold").sort((a, b) => new Date(b.sold_at) - new Date(a.sold_at));
     const currency = (value) => `₡${Number(value).toLocaleString("es-CR")}`;
@@ -479,7 +498,7 @@
   function safe(text = "") {
     const node = document.createElement("span");
     node.textContent = text;
-    return node.innerHTML;
+    return node.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   inventory.addEventListener("click", async (event) => {
     const editButton = event.target.closest("[data-edit]");
@@ -756,6 +775,7 @@
     if (error) notice(error.message, "error");
     else {
       products = products.map(item => item.id === updatedProduct.id ? updatedProduct : item);
+      renderReservedSold();
       notice("Estado de la prenda actualizado.");
     }
     if (error) select.value = previousValue;

@@ -868,6 +868,51 @@ footer a {
   }
 }
 .drop-category-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.reviews-section { padding: 90px 6vw; border-top: 1px solid var(--line); scroll-margin-top: 100px; }
+.reviews-heading { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 48px; }
+.reviews-heading h2 { font: 900 clamp(54px, 7vw, 90px)/.9 var(--condensed); letter-spacing: -.03em; margin: 18px 0 0; }
+.reviews-heading h2 em { color: var(--red); font-style: normal; }
+.reviews-heading > p { max-width: 340px; font-size: 12px; line-height: 1.8; margin: 0; }
+.reviews-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: clamp(24px, 4vw, 64px); align-items: start; }
+.reviews-section h3 { font: 800 27px/1.1 var(--condensed); margin: 0 0 24px; }
+.public-reviews-list { display: grid; gap: 20px; }
+.public-reviews-list > p { font-size: 12px; line-height: 1.8; }
+.review-card { border-bottom: 1px solid var(--line); padding: 0 0 24px; min-width: 0; }
+.review-stars { color: var(--red); font-size: 25px; letter-spacing: .06em; }
+.review-comment { font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-author { display: grid; gap: 7px; overflow-wrap: anywhere; }
+.review-author strong { font: 700 21px var(--condensed); }
+.review-author span { font-size: 10px; color: #555; }
+.review-form { display: grid; gap: 12px; background: #f3f1ec; padding: clamp(20px, 3vw, 36px); min-width: 0; }
+.review-form h3 { margin-bottom: 8px; }
+.review-form > label, .review-rating legend { font-size: 10px; letter-spacing: .05em; }
+.review-form input:not([type="radio"]):not([type="checkbox"]), .review-form select, .review-form textarea { width: 100%; min-width: 0; min-height: 46px; border: 1px solid #888; border-radius: 0; padding: 12px; font: 16px var(--mono); color: var(--black); background: #fff; }
+.review-form textarea { resize: vertical; }
+.review-rating { margin: 8px 0; border: 0; padding: 0; min-width: 0; }
+.review-stars-input { display: flex; gap: 4px; margin-top: 10px; position: relative; }
+.review-stars-input > input, .review-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.review-stars-input > label { display: grid; place-items: center; width: 44px; height: 44px; font-size: 36px; cursor: pointer; color: #727272; }
+.review-stars-input > label.is-filled { color: var(--red); }
+.review-stars-input > input:focus-visible + label { outline: 3px solid var(--red); outline-offset: 2px; }
+#reviewRatingLabel { font-size: 11px; margin-bottom: 0; }
+.review-help, .review-consent { font-size: 10px; line-height: 1.7; }
+.review-help { margin: 0; color: #555; }
+.review-form .review-consent { display: flex; gap: 10px; align-items: start; letter-spacing: normal; padding: 6px 0; }
+.review-consent input { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; accent-color: var(--red); }
+.review-honeypot { display: none; }
+.review-form button { width: 100%; border: 1px solid var(--red); cursor: pointer; }
+.review-form button:disabled { opacity: .65; cursor: wait; }
+.review-more { background: transparent; color: var(--black); border: 1px solid var(--black); margin-top: 24px; cursor: pointer; font: 12px var(--mono); }
+#reviewFormMessage { font-size: 12px; line-height: 1.7; margin: 0; }
+#reviewFormMessage[data-state="error"] { color: #8b1717; }
+#reviewFormMessage[data-state="success"] { color: #215333; }
+.reviews-section :focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+@media (max-width: 800px) {
+  .reviews-section { padding: 64px 5vw; }
+  .reviews-heading { display: block; margin-bottom: 32px; }
+  .reviews-heading > p { margin-top: 24px; }
+  .reviews-layout { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+}
 .drop-category-filter { padding: 12px 16px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .drop-category-filter.active { background: #e52325; color: #fff; border-color: #e52325; }
 .drop-category-filter:focus-visible { outline: 3px solid #e52325; outline-offset: 3px; }
