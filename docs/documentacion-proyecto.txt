@@ -1428,6 +1428,29 @@ Pendientes: commit/push, READY del commit esperado, dominio y recursos/404 inter
 Reversión: recuperar un despliegue compatible con source=chat; mantener esquema,
 datos e imágenes. No borrar Storage ni revertir SQL como parte de una reversión web.
 
+Comprobación posterior de publicación, 2026-11-02, America/Costa_Rica:
+- Commit 187a2077818ca12765cf0cb25ac4b43716c18c69 creado y enviado a origin/main.
+  La integración Git generó dpl_ctTqU7zaxUhRzrDeovjwoZERdKZm, target=production,
+  READY y con alias www.fuck-face.com y fuck-face.com, verificados con el conector.
+- GET reales a https://www.fuck-face.com: 15 recursos públicos HTTP 200 y coincidentes
+  con archivos locales al normalizar saltos de línea y espacios extremos. Incluyen
+  las cuatro páginas, config, robots, sitemap, CSS y JS de la función publicada.
+- Once rutas internas respondieron 404: documentación central e informe de auditoría,
+  migración nueva, esquema SQL, AGENTS, README, package, herramienta de build, test,
+  configuración de la otra aplicación y auditoría histórica de Storage.
+- Edge headless contra el dominio real a 1440 y 390 px: formulario público visible,
+  carga de reseñas sin errores HTTP observados, login administrativo visible y panel
+  oculto sin sesión; sin desbordamiento horizontal ni errores pageerror. La llamada
+  release_due_drops fue interceptada para evitar efectos de publicación programada.
+  No se enviaron formularios, reseñas ni imágenes reales ni se inició sesión de prueba.
+- Estado: versión de capturas publicada y recursos verificados. La verificación de
+  roles autenticados y cargas reales de Storage sigue pendiente de una cuenta de
+  prueba autorizada. Disponibilidad de columnas comprobada por API pública; no se
+  atribuye al agente la ejecución del SQL en Supabase.
+- Registro de esta comprobación añadido después del despliegue. Un commit posterior
+  exclusivamente documental no altera dist/, porque la documentación está excluida
+  de la salida pública. Las entradas anteriores conservan el estado de su momento.
+
 
 20. PLANTILLA DE NUEVA ENTRADA
 -----------------------------
