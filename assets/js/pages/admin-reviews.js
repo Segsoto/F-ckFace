@@ -5,6 +5,31 @@
   const more = document.getElementById("moreAdminReviews");
   const message = document.getElementById("reviewModerationMessage");
   const reviews = window.CustomerReviews;
+  const chatForm = document.getElementById("chatReviewForm");
+  const chatFile = document.getElementById("chatReviewImage");
+  const chatPreview = document.getElementById("chatReviewPreview");
+  const chatMessage = document.getElementById("chatReviewMessage");
+  let previewUrl = null, savingChat = false, uploadRequest = 0;
+  function clearPreview() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+    chatPreview.removeAttribute("src");
+    chatPreview.hidden = true;
+  }
+  chatFile.addEventListener("change", () => {
+    clearPreview();
+    chatForm.elements.namedItem("consent").checked = false;
+    chatMessage.textContent = "";
+    const file = chatFile.files[0];
+    if (!file) return;
+    try {
+      window.ReviewChatImages.validateFile(file);
+      previewUrl = URL.createObjectURL(file);
+      chatPreview.src = previewUrl;
+      chatPreview.hidden = false;
+    } catch (error) { chatFile.value = ""; chatMessage.textContent = error.message; chatMessage.dataset.state = "error"; }
+  });
+  window.addEventListener("pagehide", clearPreview);
   let client = null, rows = [], request = 0, busy = false;
   function render() {
     list.innerHTML = rows.map((review) => {
@@ -37,6 +62,36 @@
   refresh.addEventListener("click", () => load());
   more.addEventListener("click", () => load(false));
   filter.addEventListener("change", () => load());
+  chatForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (savingChat || !client || !chatForm.reportValidity()) return;
+    const version = request;
+    const uploadVersion = ++uploadRequest;
+    const values = Object.fromEntries(new FormData(chatForm));
+    const file = chatFile.files[0];
+    savingChat = true;
+    chatMessage.textContent = "";
+    const controls = Array.from(chatForm.elements);
+    controls.forEach((control) => { control.disabled = true; });
+    try {
+      await window.ReviewChatImages.save(client, values, file, {
+        prepare: window.ImageCompression.prepare,
+        randomUUID: () => crypto.randomUUID(),
+        onProgress: (text) => { if (uploadVersion === uploadRequest && client) chatMessage.textContent = text; },
+      });
+      if (uploadVersion !== uploadRequest || !client) return;
+      chatForm.reset();
+      clearPreview();
+      chatMessage.textContent = "Captura guardada. Revisá su legibilidad en PENDIENTES y aceptala cuando esté lista para publicarse.";
+      chatMessage.dataset.state = "success";
+      // No cambiar un filtro que la persona haya seleccionado durante la carga.
+      if (version === request) { filter.value = "pending"; await load(); }
+    } catch (error) {
+      if (uploadVersion !== uploadRequest || !client) return;
+      chatMessage.textContent = error.message;
+      chatMessage.dataset.state = "error";
+    } finally { if (uploadVersion === uploadRequest) { savingChat = false; controls.forEach((control) => { control.disabled = false; }); } }
+  });
   list.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-review-action]");
     if (!button || busy) return;
@@ -58,6 +113,21 @@
   window.AdminReviews = {
     init(value) { client = value; if (!document.getElementById("reviewsModule").hidden) load(); },
     load,
-    clear() { client = null; rows = []; ++request; busy = false; list.innerHTML = ""; message.textContent = ""; more.hidden = true; refresh.disabled = more.disabled = false; },
+    clear() {
+      client = null;
+      rows = [];
+      ++request;
+      ++uploadRequest;
+      savingChat = busy = false;
+      list.innerHTML = "";
+      message.textContent = "";
+      more.hidden = true;
+      refresh.disabled = more.disabled = false;
+      chatForm.reset();
+      Array.from(chatForm.elements).forEach((control) => { control.disabled = false; });
+      clearPreview();
+      chatMessage.textContent = "";
+      document.getElementById("chatReviewEditor").open = false;
+    },
   };
 })();

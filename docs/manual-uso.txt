@@ -249,11 +249,33 @@ Administración:
    RESEÑAS trae otra página: veinte por carga en el panel y seis en la tienda.
 5. Si falla una decisión, actualizar y comprobar el estado antes de reintentar.
 
+Añadir una captura desde el equipo:
+1. En RESEÑAS, abrir AÑADIR CAPTURA DE UN CHAT.
+2. Preparar una copia donde estén ocultos teléfonos, direcciones, fotos de perfil y
+   datos del pedido. Contar con autorización del cliente para publicar la conversación.
+3. Elegir una captura JPG, PNG o WebP, hasta 10 MiB. El nombre/apodo y contexto son
+   opcionales; sin nombre se mostrará Compra por chat. Elegir el tipo de experiencia.
+4. Revisar la vista previa y marcar la confirmación de autorización/datos ocultos.
+   Se solicita de nuevo si se cambia de archivo.
+5. GUARDAR CAPTURA PARA REVISIÓN la prepara hasta 2400 píxeles y 1,5 MB, y la deja
+   pendiente. Para varias capturas, repetir este proceso una por una.
+6. En PENDIENTES, abrir VER CAPTURA COMPLETA y comprobar que el texto siga legible
+   y no muestre datos personales. Usar ACEPTAR Y PUBLICAR o RECHAZAR.
+
+La web identifica estas imágenes como capturas añadidas por el equipo y no les
+asigna estrellas. El formulario público no permite adjuntar archivos. Las imágenes
+están en almacenamiento privado; solo las aprobadas obtienen acceso público temporal.
+Si una imagen deja de cargar, actualizar la página. Al rechazar se bloquean nuevos
+enlaces; uno ya emitido puede funcionar hasta cinco minutos. Ante fallo al guardar,
+actualizar las reseñas antes de repetir la carga para evitar duplicados.
+La función no oculta datos automáticamente ni permite reemplazar una captura guardada.
+
 Las reseñas no aparecen públicamente por el solo envío. No se editan sus textos
 desde el panel. El formulario no comprueba identidad ni compra y no implementa
 CAPTCHA; revisar el contenido antes de aceptarlo. Nunca publicar datos personales
 incluidos accidentalmente. Para usar esta función, el encargado técnico debe aplicar
-la migración de reseñas indicada en README y publicar los archivos web relacionados.
+las dos migraciones de reseñas indicadas en README, en orden, y publicar los archivos
+web relacionados. Si la primera ya está aplicada, ejecutar solo la de capturas.
 
 18. SOPORTE
 -----------

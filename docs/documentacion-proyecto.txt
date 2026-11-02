@@ -114,10 +114,12 @@ Dependencias:
 - Imágenes de categorías: recursos externos de Unsplash en la tienda/New Drop.
 - Node.js 22 o superior: npm run dev, npm test y limpieza histórica.
 - Python 3 y Pillow: generador de miniaturas y sus pruebas.
-- Sin dependencias npm instalables, lockfile ni comando npm run build actualmente.
+- Sin dependencias npm instalables ni lockfile. npm run build prepara la salida
+  estática en dist/; no transpila ni instala un framework.
 
 Comandos desde la raíz:
   npm run dev
+  npm run build
   npm test
   python tools/build-product-thumbnails.py
   python tests/product-thumbnails.test.py
@@ -137,7 +139,9 @@ Entradas y configuración:
 - admin.html: acceso y panel de gestión con sus diálogos.
 - 404.html: página de error; también reconduce la variante de ruta de New Drop.
 - config.js: configuración compartida de F-ck Face.
-- package.json: scripts dev y test.
+- package.json: scripts dev, build y test.
+- vercel.json: build con npm run build y salida pública exclusiva dist/.
+- .gitignore: excluye dist/ y .vercel/ de Git.
 - robots.txt: reglas de rastreo y referencia al sitemap.
 - sitemap.xml: URLs de la tienda y New Drop.
 - AGENTS.md: pauta de trabajo y actualización de esta documentación.
@@ -161,6 +165,7 @@ assets/js/shared/:
 - password-toggle.js: botones para mostrar y ocultar contraseñas.
 - page-loader.js: overlay de carga y límite de espera.
 - customer-reviews.js: validación, HTML escapado y consultas/escrituras de reseñas.
+- review-chat-images.js: validación, carga privada y guardado de testimonios de chats.
 
 assets/css/:
 - styles.css: tienda, New Drop, galería y adaptación de diseño.
@@ -180,9 +185,12 @@ SQL:
 - sleeve-length.sql: columna sleeve_length_cm y recarga de esquema.
 - supabase/migrations/20260912033744_category_measurements.sql: medidas adicionales.
 - supabase/migrations/20261102183624_customer_reviews.sql: reseñas y permisos RLS.
+- supabase/migrations/20261102192441_review_chat_images.sql: capturas de chats privadas.
 
 Herramientas, pruebas y registros:
 - tools/dev-server.cjs: servidor estático de desarrollo.
+- tools/build-site.cjs: genera dist/ con una lista explícita de archivos públicos;
+  conserva la capitalización de NewDrop.html y excluye documentación y otras apps.
 - tools/build-product-thumbnails.py: portadas y galerías WebP públicas.
 - tools/cleanup-orphan-images.cjs: limpieza de una auditoría histórica específica.
 - tools/cleanup-orphan-images.ps1: entrada segura y confirmación de esa limpieza.
@@ -243,6 +251,10 @@ Reseñas de servicio y entregas:
 - La lectura solicita solo approved; muestra seis reseñas por página, ordenadas por
   created_at e id descendentes, con VER MÁS y reintento ante fallo de lectura.
 - Nombre y comentario se codifican como texto; no se interpretan como HTML.
+- Las capturas añadidas desde el panel se intercalan con las reseñas aprobadas y
+  se identifican como CAPTURA AÑADIDA POR EL EQUIPO, sin calificación inventada.
+  VER CAPTURA COMPLETA abre la imagen en otra pestaña. Si Storage falla, conserva
+  la ficha y muestra un aviso para recargar; no bloquea las reseñas escritas.
 - El cliente Supabase de reseñas públicas no persiste ni renueva sesiones y usa una
   clave de almacenamiento propia. No necesita cuenta del comprador.
 - Incluye un campo señuelo oculto; no hay CAPTCHA ni límite de frecuencia en servidor.
@@ -334,6 +346,25 @@ Moderación de reseñas:
   una decisión concurrente. Un fallo pide actualizar la lista antes de reintentar.
 - Bloquea acciones durante la decisión y descarta respuestas de consultas anteriores
   al cambiar filtros o salir. Cerrar sesión borra la lista de reseñas del navegador.
+
+Capturas de chats de compras:
+- En RESEÑAS, AÑADIR CAPTURA DE UN CHAT abre un formulario exclusivo del equipo.
+- Una imagen por envío JPG/PNG/WebP, hasta 10 MiB; nombre/apodo opcional (por defecto
+  Compra por chat), contexto opcional de hasta 1500 caracteres y tipo de experiencia.
+- Exige confirmar autorización del cliente y ocultamiento previo de datos personales.
+  No incluye herramienta de censura: la captura debe llegar ya preparada.
+- Muestra vista previa local, libera su URL al cambiar archivo, guardar o salir y
+  desmarca la confirmación al elegir otro archivo. Bloquea el formulario al guardar.
+- Reutiliza ImageCompression.prepare: hasta 2400 píxeles y 1500000 bytes; revisar
+  legibilidad de la captura guardada antes de aceptarla. No asigna estrellas al chat.
+- Sube a review-chats con ruta UUID_ADMIN/UUID_IMAGEN.ext y sin nombre original,
+  sin upsert; crea una reseña source=chat, rating=null y pending por defecto.
+- Ante respuesta perdida, consulta image_path antes de limpiar: recupera una fila
+  guardada y solo intenta quitar objetos confirmados sin referencias. Si la consulta
+  falla conserva el objeto privado. No hay cola persistente para estos residuos.
+- Tras guardar permite revisar la captura en PENDIENTES y aprobarla/rechazarla con
+  las acciones habituales. El formulario del cliente continúa sin adjuntos.
+- Al cerrar sesión limpia el formulario y descarta respuestas de una carga anterior.
 
 Programación del drop:
 - Nombre, apertura exclusiva, apertura pública, contraseña y nota opcional.
@@ -498,9 +529,17 @@ customer-reviews.js -> window.CustomerReviews y exportación CommonJS en Node
 - payload valida límites y permite solo nombre visible, estrellas, comentario y tipo.
 - escape/card codifican contenido de clientes, incluyendo comillas en HTML.
 - list filtra estado y pagina con una fila adicional para detectar si hay más.
+- Las filas source=chat reciben URLs firmadas de review-chats por cinco minutos.
+  Esas URLs son temporales en memoria, no se guardan en la tabla. El texto sigue
+  disponible si falla la firma. Una página abierta puede requerir recarga al expirar.
 - submit inserta sin SELECT; moderate guarda una decisión condicionada por estado.
 - El helper safe del panel también codifica comillas al construir atributos HTML.
   Este ajuste no acredita la corrección de todos los hallazgos de la auditoría previa.
+
+review-chat-images.js -> window.ReviewChatImages y exportación CommonJS en Node
+- validateFile y payload validan archivo, contexto y confirmación para el formulario
+  administrativo. save comprueba sesión, prepara bytes, sube a Storage privado y
+  guarda la reseña pendiente. Recupera guardados confirmados tras respuestas perdidas.
 
 Orden de scripts:
 - Página pública: loader temprano; después SDK, config, medidas, imágenes,
@@ -508,7 +547,8 @@ Orden de scripts:
 - New Drop: loader temprano; después SDK, config, toggle de contraseña, medidas,
   imágenes, mapa, vista previa y newdrop.js.
 - Admin: SDK, config, toggle, medidas, compresión, mapa, reportes, fotos y admin.js.
-  Entre fotos y admin.js se cargan customer-reviews.js y admin-reviews.js.
+  Entre fotos y admin.js se cargan customer-reviews.js, review-chat-images.js y
+  admin-reviews.js. La compresión ya se carga antes del editor de chats.
 - La tienda carga customer-reviews.js y reviews.js después de app.js.
 Conservar este orden al incorporar dependencias globales nuevas.
 
@@ -566,7 +606,10 @@ en texto consultable para el panel. No describir el sistema como solo hash.
 public.customer_reviews (requiere su migración adicional):
 - id UUID y created_at con valores predeterminados en PostgreSQL.
 - customer_name: nombre visible/apodo, 1 a 60 caracteres tras trim.
-- rating: smallint, 1 a 5; comment: 10 a 1500 caracteres tras trim.
+- rating: smallint, 1 a 5 para source=customer; null para source=chat.
+- comment: 10 a 1500 caracteres en reseñas de clientes; 0 a 1500 en capturas.
+- source: customer por defecto o chat; requiere la segunda migración de reseñas.
+- image_path: null en reseñas escritas; ruta relativa única a review-chats en chats.
 - experience: service, delivery o both.
 - status: pending por defecto, approved o rejected.
 - reviewed_at: null mientras está pendiente; obligatorio tras aceptar/rechazar.
@@ -630,6 +673,20 @@ Permisos de customer_reviews, definidos por su migración adicional:
   USING y WITH CHECK; no permite reescribir la opinión. No hay permiso DELETE público.
 - La migración revoca los permisos iniciales y concede explícitamente los necesarios.
   No incorpora funciones SECURITY DEFINER ni cambia permisos de productos/Storage.
+- Ampliación 20261102192441: la inserción pública sigue limitada a source=customer,
+  sin adjunto y pendiente. authenticated tiene permiso de inserción de source y
+  image_path, pero RLS exige administrador para source=chat y ruta con su UUID.
+  Los permisos de moderación no permiten cambiar textos, origen ni imagen guardada.
+
+Storage de capturas (migración 20261102192441):
+- Bucket privado review-chats, límite 1500000 bytes y MIME JPG/PNG/WebP.
+- Solo administradores autorizados cargan imágenes bajo su UUID y leen pendientes.
+- Público/usuarios sin perfil solo pueden leer o firmar objetos vinculados a una
+  reseña chat aprobada. No hay política de reemplazo; cada carga usa una ruta nueva.
+- DELETE administrativo exige que ninguna reseña referencie el objeto; protege
+  imágenes guardadas incluso cuando falla la respuesta de una operación.
+- Rechazar oculta la reseña y bloquea firmas nuevas; un enlace ya firmado puede
+  seguir accesible hasta cinco minutos. No puede revocar una copia ya descargada.
 
 Storage:
 - Bucket product-images, configurado como público en supabase-schema.sql.
@@ -672,6 +729,8 @@ Instalación nueva:
 - Configurar Auth, autorización del administrador y config.js.
 - Aplicar también supabase/migrations/20261102183624_customer_reviews.sql después
   del esquema base; customer_reviews no forma parte de supabase-schema.sql.
+- Después, aplicar supabase/migrations/20261102192441_review_chat_images.sql para
+  columnas de adjunto y bucket privado. Si la primera ya se aplicó, no repetirla.
 - Probar los flujos antes de publicar los archivos web.
 
 Instalación existente:
@@ -685,6 +744,8 @@ Instalación existente:
 - 20261102183624_customer_reviews.sql crea únicamente reseñas, índice y permisos;
   aplicarla una vez en el proyecto de config.js antes de publicar los nuevos assets.
   La vista Apartado y vendido usa los campos actuales y no requiere migración propia.
+- 20261102192441_review_chat_images.sql amplía reseñas existentes conservando sus
+  datos; aplicar después de la migración de reseñas y antes de los assets con chats.
 - Aplicar únicamente los cambios pertinentes que no estén ya incorporados y
   comprobar compatibilidad con datos existentes.
 - notify pgrst, 'reload schema' permite que la API recoja columnas y RPC actualizados
@@ -799,6 +860,10 @@ Ejecuta node --test tests/*.test.cjs.
 Cobertura por archivo:
 - customer-reviews.test.cjs: validación, exclusión de campos de moderación del envío,
   escape HTML, paginación, errores, decisión concurrente y vista conjunta de prendas.
+- review-chat-images.test.cjs: tipos/límites, confirmación, ausencia de estrellas,
+  carga preparada, recuperación de guardado, limpieza prudente, firma y render seguro.
+- site-build.test.cjs: genera salida temporal y comprueba recursos, capitalización
+  y exclusión de documentos internos, SQL, herramientas y aplicación separada.
 - store.test.cjs: recursos locales, configuración compartida, portadas/miniaturas,
   acceso New Drop, redirección de productos públicos, contador, filtros y enlaces.
 - product-gallery.test.cjs: previews locales, selección de originales, orden/fotos
@@ -860,13 +925,19 @@ Publicación estática:
 3. Preparar migraciones necesarias y aplicarlas antes del frontend que las requiera.
 4. Regenerar miniaturas si cambió el catálogo público/fotos.
 5. Ejecutar comprobaciones pertinentes y git diff --check.
-6. Publicar HTML, CSS, JS y recursos relacionados juntos.
+6. Ejecutar npm run build y publicar dist/ completo. El build incluye solo index.html,
+   admin.html, NewDrop.html, 404.html, config.js, robots.txt, sitemap.xml, assets/ e img/.
+   Reconstruye solo la carpeta dist/ exacta del proyecto, rechazando enlaces/junctions.
 7. Configurar 404, caché y exclusión de archivos internos en el hosting.
 8. Verificar la versión publicada, rutas, detalle y consola.
 9. Anotar proveedor, despliegue/commit, fecha y comprobaciones en la bitácora.
 
-No hay proveedor/deploy automático configurado en los archivos revisados.
-El dominio escrito en SEO no prueba cuál es el proveedor ni qué commit está activo.
+El 2026-11-02 se comprobó mediante el conector Vercel que el proyecto existente
+f-ck-face está enlazado a Segsoto/F-ckFace y publica main en www.fuck-face.com y
+fuck-face.com. vercel.json define buildCommand=npm run build y outputDirectory=dist.
+La CLI local usa otra cuenta y no resuelve ese equipo: usar el conector/integración
+Git del proyecto verificado, sin relink ni creación de otro sitio. El dominio escrito
+en SEO por sí solo no prueba proveedor ni versión; consultar despliegue y recursos.
 robots.txt y noindex controlan rastreo; no protegen documentos ni credenciales.
 No publicar docs/, AGENTS.md, SQL, tests/, tools/ o auditorías como recursos públicos
 cuando se pueda excluirlos desde la configuración de despliegue.
@@ -1256,6 +1327,106 @@ Documentación: se actualizaron secciones afectadas, README, calidad y manual.
 Revisión final: código y documentación contrastados con el diff; npm test nuevamente
 con 56 aprobadas y git diff --check sin errores. Se retiró el archivo temporal de
 versión que generó Supabase CLI; no se añadieron dependencias npm al proyecto.
+
+
+[CAMBIO-CHATS-20261102] 2026-11-02 - Capturas de chats añadidas desde Reseñas
+Zona: America/Costa_Rica.
+Solicitud: permitir que el equipo administrativo añada imágenes de conversaciones
+con clientes que compraron productos, desde el apartado de reseñas del panel.
+Motivo: publicar testimonios visuales conservando la aprobación previa y distinguiendo
+las capturas añadidas por el equipo de las reseñas escritas por clientes.
+Base: bb7e9c6; Git limpio al iniciar. No hubo cambios ajenos pendientes que separar.
+Archivos: admin.html, assets/css/admin.css, assets/css/styles.css,
+assets/js/pages/admin-reviews.js, assets/js/shared/customer-reviews.js,
+assets/js/shared/review-chat-images.js, tests/review-chat-images.test.cjs,
+supabase/migrations/20261102192441_review_chat_images.sql, README.md,
+docs/calidad.md, docs/manual-uso.txt y este registro central.
+Pasos y resultados comprobados:
+1. Leer documentación, manual, calidad y código de reseñas, Storage y compresión.
+   Consultar documentación oficial de Supabase sobre buckets privados, firmas y RLS.
+2. Añadir formulario administrativo con selección, vista previa, contexto opcional y
+   confirmación de autorización y datos ocultos. La captura llega ya censurada;
+   no se agregó editor de imágenes. Una captura por envío, repetible para varias.
+3. Reutilizar la compresión existente y subir con UUID/ruta nueva al bucket privado
+   review-chats. Guardar source=chat, rating=null y estado pending por defecto.
+4. Recuperar filas tras respuesta perdida antes de intentar limpieza; conservar
+   capturas cuando no se puede comprobar si están referenciadas. RLS impide borrar
+   objetos de una reseña guardada, aun cuando el navegador intente limpiar.
+5. Incorporar capturas a la misma moderación y al listado público aprobado, con
+   identificación de su origen y enlace para abrir la imagen completa. Firmas de
+   cinco minutos en memoria; sin estrellas asignadas a la conversación.
+6. Generar migración adicional con Supabase CLI: columnas/validaciones, índice único,
+   política de alta administrativa y bucket privado con límites y políticas de objetos.
+   No se aplicó a Supabase remoto ni se modificaron productos, drops o configuración.
+7. npm test: 62 pruebas aprobadas (56 existentes y seis nuevas). Incluyen validación,
+   bytes preparados, respuesta perdida, limpieza prudente, firmas y render seguro.
+8. PGlite PostgreSQL local: 26 comprobaciones aprobadas de constraints y permisos.
+   Anónimos/usuarios sin perfil no insertan chats ni leen imágenes pendientes;
+   aprobadas legibles, rechazadas ocultas y borrado de referencias bloqueado.
+9. Edge headless con SDK Supabase real, REST/Storage interceptados y RLS en PGlite:
+   selección/vista previa, carga privada, pending, aceptación, imagen pública firmada,
+   rechazo/retirada y cierre de sesión aprobados. Imagen sintética decodificada en
+   navegador. Capturas a 1440, 768 y 390 px, sin desbordamiento ni errores pageerror;
+   revisión visual de pantallas y capturas en móvil/escritorio. Evidencias temporales
+   fuera del repositorio; no se subieron conversaciones ni datos reales.
+Incidencias de verificación: se ajustó la emulación de Storage para extraer el PNG
+del multipart enviado por el SDK. El recorrido anterior también asumía una única
+reseña rechazada; se aisló el flujo nuevo y su ejecución completa pasó.
+Resultado: opción implementada localmente en RESEÑAS, solo para administradores;
+la captura queda pendiente y se puede aceptar/rechazar con las acciones existentes.
+Limitaciones: sin verificación de identidad/compra ni censura automática. Firmas
+ya emitidas pueden funcionar hasta cinco minutos después de rechazar. Un fallo
+de lectura tras una carga puede dejar un objeto privado sin referencia; no tiene
+cola persistente de limpieza. Revisar antes de reintentar para evitar duplicados.
+Estado y publicación: implementado y verificado localmente; no publicado ni commit.
+Servicio remoto: sin aplicación de la migración ni cambios reales de datos/Storage.
+El acceso administrativo al proyecto configurado seguía sin estar disponible en
+la comprobación previa de esta conversación; no se acredita estado de producción.
+Pendientes: aplicar únicamente la segunda migración si la inicial ya está instalada;
+publicar HTML/CSS/JS relacionados juntos y comprobar Auth/RLS/Storage reales allí.
+Reversión: conservar esquema y archivos guardados. Mantener un frontend que reconozca
+source=chat; una versión anterior podría mostrar una estrella al recibir rating=null.
+Antes de volver a una versión antigua, retirar las capturas aprobadas y conservar
+una vía administrativa compatible. No borrar reseñas u objetos sin autorización.
+Documentación: actualizadas secciones afectadas, manual, calidad y README.
+Revisión final: diff contrastado con comportamiento y documentación; npm test con
+62 aprobadas, node --check de los tres módulos JS afectados y git diff --check sin
+errores. Retirado el archivo temporal generado por CLI; sin dependencias nuevas en
+el proyecto, sin cambios en NewDrop.html, Camisadel10 ni herramientas históricas.
+
+
+[PUBLICACION-20261102] 2026-11-02 - Preparación de capturas y publicación en Vercel
+Zona: America/Costa_Rica.
+Solicitud: entregar el SQL complementario y publicar la versión con capturas de chats.
+Base: bb7e9c6 en main; cambios locales de la tarea anterior conservados e incluidos.
+Motivo: activar la función y publicar solo recursos de la web, excluyendo archivos
+internos que la configuración anterior podía servir desde la raíz del repositorio.
+Archivos: cambios de capturas ya descritos; además .gitignore, vercel.json,
+package.json, tools/build-site.cjs, tests/site-build.test.cjs, README.md, calidad y
+este registro. No se modificó la aplicación Camisadel10.
+Acciones comprobadas antes de publicar:
+1. Verificar origen Git, main y commit remoto; identificar conector Vercel, proyecto
+   f-ck-face, repositorio enlazado y dominios. Producción inicial: dpl_DF1P3pGN934DUQSEpkMeBYitov8G,
+   commit bb7e9c6. La CLI local tiene otro contexto y no resuelve el equipo: no se usó
+   para publicar ni se cambió su sesión.
+2. Comprobar la API pública del Supabase configurado con consulta vacía de columnas:
+   primero HTTP 400, columna source inexistente; entregar SQL complementario completo.
+   Una segunda consulta respondió HTTP 200 con source e image_path disponibles.
+   Esto no acredita la ejecución de migraciones por el agente ni una auditoría RLS.
+3. Crear una vista previa del commit remoto anterior para comprobar acceso al conector:
+   dpl_WKQim2zQKdhXdsSXrLiLapKBDY89, READY, sin destino production. No contiene la
+   función nueva y no se presentó como su publicación.
+4. Añadir build estático con lista de archivos públicos y configurar Vercel para
+   servir dist/. Se excluyen docs, SQL, tests, tools, auditorías y Camisadel10 de la
+   salida pública sin borrar fuentes del repositorio.
+5. npm run build completado y npm test con 63 pruebas aprobadas, incluida exclusión
+   de recursos internos. git diff --check sin errores al preparar esta entrada.
+Estado al registrar esta preparación: versión lista para commit/push y verificación;
+no afirmar que esta versión está publicada hasta añadir su comprobación posterior.
+Limitaciones: no se probaron escrituras reales de reseñas ni imágenes de clientes.
+Pendientes: commit/push, READY del commit esperado, dominio y recursos/404 internos.
+Reversión: recuperar un despliegue compatible con source=chat; mantener esquema,
+datos e imágenes. No borrar Storage ni revertir SQL como parte de una reversión web.
 
 
 20. PLANTILLA DE NUEVA ENTRADA

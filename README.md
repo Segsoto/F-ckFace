@@ -90,9 +90,28 @@ El esquema base por sí solo no crea `customer_reviews`. La migración añade ta
 restricciones, índice y RLS; no modifica prendas, drops ni Storage. Tener este archivo
 en Git no significa que se haya aplicado al servicio remoto.
 
+Para las **capturas de chats añadidas desde el equipo**, ejecutar después
+[`supabase/migrations/20261102192441_review_chat_images.sql`](supabase/migrations/20261102192441_review_chat_images.sql).
+Si ya aplicaste la migración inicial de reseñas, ejecutar solo esta segunda. Amplía
+`customer_reviews` con `source`/`image_path` y crea el bucket **privado** `review-chats`
+con políticas de lectura/carga. No cambiarlo a público: los pendientes deben quedar
+accesibles solo al equipo. Acepta JPG/PNG/WebP de hasta 1500000 bytes tras preparación.
+El panel exige confirmación de autorización del cliente y ocultamiento previo de
+datos personales, muestra vista previa y guarda la captura pendiente. No censura
+imágenes ni asigna estrellas a los chats. Los archivos originales no se publican
+automáticamente; deben aceptarse desde la misma lista de moderación.
+
+Las imágenes se sirven mediante URLs firmadas por cinco minutos. Rechazar bloquea
+firmas nuevas; enlaces existentes pueden funcionar hasta su vencimiento. Si falla
+un guardado, se comprueba si la captura quedó referenciada antes de intentar limpiarla;
+ante una consulta fallida, puede quedar un archivo privado sin referencia. No hay cola
+persistente ni limpieza histórica automática de estas capturas. Verificar referencias
+antes de cualquier mantenimiento manual; no usar las herramientas de prendas para ello.
+
 Publicá juntos `index.html`, `admin.html`, los dos CSS y los scripts nuevos
 `assets/js/shared/customer-reviews.js`, `assets/js/pages/reviews.js`,
-`assets/js/pages/admin-reviews.js` y el `assets/js/pages/admin.js` actualizado.
+`assets/js/pages/admin-reviews.js`, `assets/js/shared/review-chat-images.js` y el
+`assets/js/pages/admin.js` actualizado.
 Los visitantes envían nombre visible, 1–5 estrellas, comentario y tipo de experiencia;
 la base los guarda pendientes. **Reseñas** en el panel permite aceptar/publicar o
 rechazar/retirar. Solo el equipo autorizado en `admin_profiles` puede moderar; los
@@ -253,7 +272,18 @@ Cambiar el número en `config.js` actualiza la tienda, Admin y New Drop.
 
 ## Publicación y pruebas locales
 
-No hay dependencias de Node ni comando de build. Es un sitio estático: se puede publicar en Netlify, Vercel, GitHub Pages, Cloudflare Pages o cualquier hosting de archivos estáticos. Para probarlo localmente, ejecutar `npm run dev` y abrir `http://127.0.0.1:4173`.
+No hay dependencias npm instalables. Para probarlo localmente, ejecutar `npm run dev`
+y abrir `http://127.0.0.1:4173`. Para publicar, ejecutar `npm run build`: genera `dist/`
+solo con las cuatro páginas públicas (respetando `NewDrop.html`), `config.js`,
+`robots.txt`, `sitemap.xml`, `assets/` e `img/`. No publicar la raíz del repositorio:
+contiene documentación interna, SQL, auditorías y la aplicación separada Camisadel10.
+El build reconstruye únicamente `dist/` y rechaza usar una salida que sea un enlace.
+
+`vercel.json` configura `npm run build` y `outputDirectory=dist`. En Vercel el proyecto
+existente `f-ck-face` está vinculado a `Segsoto/F-ckFace`, rama de producción `main`
+(verificado el 2026-11-02). Publicar mediante esa integración y comprobar la versión
+en el dominio; un push no acredita que el despliegue haya terminado. No cambiar de
+cuenta/equipo/proyecto para desplegar. Otros hostings deben servir únicamente `dist/`.
 
 Para desarrollo, servir la carpeta con cualquier servidor estático y abrir:
 

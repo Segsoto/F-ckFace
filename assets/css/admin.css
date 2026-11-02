@@ -439,6 +439,19 @@ button:disabled { opacity: .6; cursor: wait; }
 .review-author { display: grid; gap: 8px; overflow-wrap: anywhere; }
 .review-author span { color: #555; font-size: 10px; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.chat-review-editor { border: 1px solid #999; margin: 24px 0; padding: 18px; }
+.chat-review-editor summary { cursor: pointer; font-weight: 500; min-height: 28px; padding: 6px 0; }
+.chat-review-editor h3 { font: 700 26px var(--condensed); margin: 0; }
+.chat-review-editor form { margin-top: 24px; }
+.chat-review-preview { display: block; max-width: 100%; max-height: 460px; object-fit: contain; margin: auto; }
+.chat-review-editor .chat-review-consent { display: flex; align-items: start; gap: 10px; line-height: 1.7; }
+.chat-review-consent input { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; }
+.review-source { font-size: 10px; letter-spacing: .06em; }
+.review-chat-link { display: grid; gap: 10px; color: inherit; font-size: 10px; margin: 16px 0; }
+.review-chat-image { display: block; width: 100%; max-height: 460px; object-fit: contain; background: #ddd; }
+.review-image-error { font-size: 11px; line-height: 1.7; }
+#chatReviewMessage { line-height: 1.7; }
+#chatReviewMessage[data-state="error"] { color: #8b1717; }
 #reviewModerationMessage { line-height: 1.6; }
 #reviewModerationMessage[data-state="error"] { color: #8b1717; }
 #reservedSoldModule :focus-visible, #reviewsModule :focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }

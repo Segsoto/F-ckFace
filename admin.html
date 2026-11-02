@@ -206,6 +206,24 @@
         <section class="inventory admin-module" id="reviewsModule" data-admin-module="reviewsModule" role="tabpanel" aria-labelledby="adminReviewsTitle" hidden>
           <div class="inventory-title"><div><p class="eyebrow">OPINIONES DE CLIENTES</p><h2 id="adminReviewsTitle">RESEÑAS</h2></div></div>
           <p class="subtle">Solo las reseñas aceptadas aparecen en la web. Podés rechazar una reseña publicada para retirarla.</p>
+          <details class="chat-review-editor" id="chatReviewEditor">
+            <summary>AÑADIR CAPTURA DE UN CHAT</summary>
+            <form id="chatReviewForm">
+              <h3>TESTIMONIO DE UNA COMPRA</h3>
+              <p class="subtle">Subí una captura del chat con un cliente. Se guardará pendiente para revisar antes de publicarla. Ocultá teléfonos, direcciones, fotos de perfil y datos del pedido antes de seleccionar la imagen.</p>
+              <div class="two-cols">
+                <label>NOMBRE O APODO VISIBLE (OPCIONAL)<input name="customer_name" maxlength="60" placeholder="Compra por chat" /></label>
+                <label>EXPERIENCIA<select name="experience"><option value="both">SERVICIO Y ENTREGA</option><option value="service">SERVICIO</option><option value="delivery">ENTREGA</option></select></label>
+              </div>
+              <label>CONTEXTO (OPCIONAL)<textarea name="comment" rows="3" maxlength="1500" placeholder="Una breve descripción del testimonio, sin datos personales."></textarea></label>
+              <label>CAPTURA DEL CHAT<input id="chatReviewImage" type="file" accept="image/jpeg,image/png,image/webp" required aria-describedby="chatReviewImageHelp" /></label>
+              <p class="subtle" id="chatReviewImageHelp">Una imagen JPG, PNG o WebP, hasta 10 MiB. Se prepara hasta 2400 píxeles y 1,5 MB. Comprobá que el texto siga legible en la vista previa y después de guardarla. Podés añadir más capturas enviándolas una a una.</p>
+              <img id="chatReviewPreview" class="chat-review-preview" alt="Vista previa de la captura seleccionada" hidden />
+              <label class="chat-review-consent"><input name="consent" type="checkbox" required /><span>Cuento con autorización del cliente para publicar esta captura y oculté sus datos personales.</span></label>
+              <button type="submit">GUARDAR CAPTURA PARA REVISIÓN</button>
+              <p id="chatReviewMessage" role="status" aria-live="polite"></p>
+            </form>
+          </details>
           <div class="review-toolbar">
             <label>ESTADO<select id="reviewStatusFilter"><option value="pending">PENDIENTES</option><option value="approved">PUBLICADAS</option><option value="rejected">RECHAZADAS</option></select></label>
             <button type="button" id="refreshReviews" class="secondary">ACTUALIZAR RESEÑAS</button>
@@ -279,6 +297,7 @@
     <script src="assets/js/shared/sales-report.js"></script>
     <script src="assets/js/shared/sale-photos.js"></script>
     <script src="assets/js/shared/customer-reviews.js"></script>
+    <script src="assets/js/shared/review-chat-images.js"></script>
     <script src="assets/js/pages/admin-reviews.js"></script>
     <script src="assets/js/pages/admin.js"></script>
   </body>

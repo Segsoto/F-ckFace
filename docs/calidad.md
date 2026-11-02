@@ -35,4 +35,18 @@ frontend; `npm test` valida simulaciones y no acredita RLS remoto. En Apartado y
 vendido, comprobar conteos, filtros y cambios de disponibilidad/venta/reversión sin
 duplicar ventas que conserven availability=reserved ni incluir payment_pending.
 
+Para capturas de chats, usar imágenes sintéticas sin datos personales: selección y
+vista previa, validación de formato/tamaño, confirmación requerida, carga pendiente,
+aprobación visible y rechazo oculto. Comprobar Storage privado: anónimos y usuarios
+sin perfil no deben cargar ni leer/firmar pendientes; un administrador no debe borrar
+un objeto referenciado. Probar respuesta perdida tras guardado y fallo de consulta
+sin eliminar la imagen. Rechazar debe impedir firmas nuevas; las emitidas duran hasta
+cinco minutos. Esta segunda migración es requisito del frontend con capturas.
+
+Antes de publicar en Vercel, ejecutar `npm run build` y servir únicamente `dist/`.
+La prueba `site-build.test.cjs` comprueba las rutas públicas y que no se incluyan
+documentos, SQL, herramientas ni Camisadel10. Tras publicar, contrastar HTML/JS/CSS
+con la versión local y comprobar que las rutas internas devuelvan 404. Revisar el
+estado READY del commit esperado y el dominio; no asumir éxito por haber hecho push.
+
 El campo histórico `inseam_cm` se conserva en la base de datos y se rotula ANCHO DE PIERNA en el módulo actual de medidas. El cambio de etiqueta no convierte los valores históricos de entrepierna; corregir el significado de medidas guardadas requiere una decisión explícita sobre esos datos.

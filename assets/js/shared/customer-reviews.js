@@ -3,7 +3,7 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.CustomerReviews = api;
 })(typeof window !== "undefined" ? window : globalThis, function () {
-  const fields = "id,customer_name,rating,comment,experience,status,created_at,reviewed_at";
+  const fields = "id,customer_name,rating,comment,experience,status,created_at,reviewed_at,source,image_path";
   const experienceLabels = { service: "Servicio", delivery: "Entrega", both: "Servicio y entrega" };
   function escape(value = "") {
     return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
@@ -26,14 +26,30 @@
   }
   function card(review, actions = "") {
     const date = new Date(review.created_at).toLocaleDateString("es-CR", { timeZone: "America/Costa_Rica", dateStyle: "medium" });
-    return `<article class="review-card">${stars(review.rating)}<p class="review-comment">${escape(review.comment)}</p><div class="review-author"><strong>${escape(review.customer_name)}</strong><span>${escape(experienceLabels[review.experience] || "Experiencia")} · ${escape(date)}</span></div>${actions}</article>`;
+    const isChat = review.source === "chat";
+    let media = "";
+    if (isChat) {
+      let url;
+      try { const parsed = new URL(review.image_url); if (["https:", "http:"].includes(parsed.protocol)) url = parsed.href; } catch {}
+      media = url ? `<a class="review-chat-link" href="${escape(url)}" target="_blank" rel="noopener noreferrer"><img class="review-chat-image" src="${escape(url)}" alt="Captura de un chat de compra compartida por el equipo" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span>VER CAPTURA COMPLETA ↗</span></a>` : '<p class="review-image-error">No se pudo cargar la captura. Actualizá la página para reintentar.</p>';
+    }
+    return `<article class="review-card">${isChat ? '<p class="review-source">CAPTURA AÑADIDA POR EL EQUIPO</p>' : stars(review.rating)}${media}${review.comment ? `<p class="review-comment">${escape(review.comment)}</p>` : ""}<div class="review-author"><strong>${escape(review.customer_name)}</strong><span>${escape(experienceLabels[review.experience] || "Experiencia")} · ${escape(date)}</span></div>${actions}</article>`;
   }
   async function list(client, status, offset = 0, pageSize = 6) {
     if (!["pending", "approved", "rejected"].includes(status)) throw new Error("Estado de reseña inválido.");
     const { data, error } = await client.from("customer_reviews").select(fields).eq("status", status)
       .order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + pageSize);
     if (error) throw error;
-    return { rows: (data || []).slice(0, pageSize), more: (data || []).length > pageSize };
+    const rows = (data || []).slice(0, pageSize);
+    const paths = rows.filter((row) => row.source === "chat" && row.image_path).map((row) => row.image_path);
+    if (paths.length) {
+      // Bucket privado: RLS permite firmar solo imágenes aprobadas o vistas por admins.
+      try {
+        const { data: images, error: imageError } = await client.storage.from("review-chats").createSignedUrls(paths, 300);
+        if (!imageError) for (const row of rows) row.image_url = images?.find((item) => item.path === row.image_path)?.signedUrl || null;
+      } catch { /* Conservar texto y moderación aunque Storage no responda. */ }
+    }
+    return { rows, more: (data || []).length > pageSize };
   }
   async function submit(client, values) {
     const { error } = await client.from("customer_reviews").insert(payload(values));
