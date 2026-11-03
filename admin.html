@@ -206,6 +206,7 @@
         <section class="inventory admin-module" id="reviewsModule" data-admin-module="reviewsModule" role="tabpanel" aria-labelledby="adminReviewsTitle" hidden>
           <div class="inventory-title"><div><p class="eyebrow">OPINIONES DE CLIENTES</p><h2 id="adminReviewsTitle">RESEÑAS</h2></div></div>
           <p class="subtle">Solo las reseñas aceptadas aparecen en la web. Podés rechazar una reseña publicada para retirarla.</p>
+          <p class="subtle">ELIMINAR borra una reseña definitivamente, incluida su captura si tiene una. Se pide confirmación antes de continuar.</p>
           <details class="chat-review-editor" id="chatReviewEditor">
             <summary>AÑADIR CAPTURA DE UN CHAT</summary>
             <form id="chatReviewForm">
@@ -231,6 +232,10 @@
           <p id="reviewModerationMessage" role="status" aria-live="polite"></p>
           <div id="adminReviewsList" class="admin-reviews-list" aria-live="polite"></div>
           <button type="button" id="moreAdminReviews" class="secondary" hidden>VER MÁS RESEÑAS</button>
+          <div id="reviewImageCleanupPanel" class="review-cleanup-panel" hidden>
+            <p id="reviewImageCleanupHelp" class="subtle" role="status"></p>
+            <button type="button" id="retryReviewImages" class="secondary">REINTENTAR LIMPIEZA DE IMÁGENES</button>
+          </div>
         </section>
         <section class="inventory admin-module" id="salesModule" data-admin-module="salesModule" role="tabpanel" hidden>
           <div class="inventory-title"><div><p class="eyebrow">VENTAS</p><h2>HISTORIAL DE VENTAS</h2></div></div>
@@ -298,6 +303,7 @@
     <script src="assets/js/shared/sale-photos.js"></script>
     <script src="assets/js/shared/customer-reviews.js"></script>
     <script src="assets/js/shared/review-chat-images.js"></script>
+    <script src="assets/js/shared/review-deletion.js"></script>
     <script src="assets/js/pages/admin-reviews.js"></script>
     <script src="assets/js/pages/admin.js"></script>
   </body>

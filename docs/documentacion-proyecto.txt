@@ -166,6 +166,7 @@ assets/js/shared/:
 - page-loader.js: overlay de carga y límite de espera.
 - customer-reviews.js: validación, HTML escapado y consultas/escrituras de reseñas.
 - review-chat-images.js: validación, carga privada y guardado de testimonios de chats.
+- review-deletion.js: eliminación condicionada y limpieza persistente de capturas.
 
 assets/css/:
 - styles.css: tienda, New Drop, galería y adaptación de diseño.
@@ -186,6 +187,8 @@ SQL:
 - supabase/migrations/20260912033744_category_measurements.sql: medidas adicionales.
 - supabase/migrations/20261102183624_customer_reviews.sql: reseñas y permisos RLS.
 - supabase/migrations/20261102192441_review_chat_images.sql: capturas de chats privadas.
+- supabase/migrations/20261102194927_delete_customer_reviews.sql: permiso de borrado
+  administrativo y cola transaccional de limpieza de capturas eliminadas.
 
 Herramientas, pruebas y registros:
 - tools/dev-server.cjs: servidor estático de desarrollo.
@@ -346,6 +349,16 @@ Moderación de reseñas:
   una decisión concurrente. Un fallo pide actualizar la lista antes de reintentar.
 - Bloquea acciones durante la decisión y descarta respuestas de consultas anteriores
   al cambiar filtros o salir. Cerrar sesión borra la lista de reseñas del navegador.
+- ELIMINAR está disponible en los tres estados. Pide confirmación con el nombre
+  visible y avisa que no se puede deshacer; cancelar no envía ninguna petición.
+- El borrado condiciona por id, status y reviewed_at (incluido null). Una reseña
+  modificada por otra sesión requiere actualizar. Un error de respuesta no acredita
+  que no se borró: revisar la lista y la limpieza pendiente antes de reintentar.
+- Si hay captura, un trigger registra su ruta en review_image_cleanup en la misma
+  transacción. Luego el navegador intenta quitar el objeto de review-chats. Un fallo
+  no restaura la reseña; REINTENTAR LIMPIEZA DE IMÁGENES procesa veinte tareas por lote.
+  La cola se conserva entre sesiones y no puede cerrarse si todavía existe el objeto.
+- Rechazar solo oculta; eliminar borra la fila definitivamente, sin restauración UI.
 
 Capturas de chats de compras:
 - En RESEÑAS, AÑADIR CAPTURA DE UN CHAT abre un formulario exclusivo del equipo.
@@ -541,6 +554,13 @@ review-chat-images.js -> window.ReviewChatImages y exportación CommonJS en Node
   administrativo. save comprueba sesión, prepara bytes, sube a Storage privado y
   guarda la reseña pendiente. Recupera guardados confirmados tras respuestas perdidas.
 
+review-deletion.js -> window.ReviewDeletion y exportación CommonJS en Node
+- remove elimina por id/estado/fecha y usa la ruta devuelta por el servidor.
+- pending obtiene hasta veinte tareas de limpieza, opcionalmente por reseña.
+- cleanup valida rutas del bucket de capturas y descarta referencias antes de llamar
+  Storage; solo cierra tareas confirmadas por la política del servidor. Un error de
+  consulta o de Storage conserva la tarea, sin tocar imágenes de otras prendas.
+
 Orden de scripts:
 - Página pública: loader temprano; después SDK, config, medidas, imágenes,
   mapa de miniaturas y app.js.
@@ -549,6 +569,7 @@ Orden de scripts:
 - Admin: SDK, config, toggle, medidas, compresión, mapa, reportes, fotos y admin.js.
   Entre fotos y admin.js se cargan customer-reviews.js, review-chat-images.js y
   admin-reviews.js. La compresión ya se carga antes del editor de chats.
+- review-deletion.js se carga antes de admin-reviews.js en el panel.
 - La tienda carga customer-reviews.js y reviews.js después de app.js.
 Conservar este orden al incorporar dependencias globales nuevas.
 
@@ -617,6 +638,14 @@ public.customer_reviews (requiere su migración adicional):
 - No almacena correo, teléfono, dirección, usuario comprador ni vínculo a una venta.
   No verifica identidad ni compra. La publicación requiere decisión administrativa.
 
+public.review_image_cleanup (tercera migración de reseñas):
+- id UUID de tarea, review_id UUID único sin FK a una fila ya eliminada,
+  image_path único con formato UUID/UUID.ext y created_at del servidor.
+- RLS y permisos de SELECT/INSERT/DELETE exclusivamente para administradores.
+  El INSERT se usa desde el trigger con los permisos del usuario que elimina.
+- La tarea no incluye comentarios ni datos personales. DELETE exige que el objeto
+  de review-chats ya no figure en storage.objects. No hay permisos de UPDATE.
+
 public.deleted_product_images:
 - id: identidad de la tarea de limpieza.
 - product_id: UUID de referencia de la prenda o provisional de una carga.
@@ -677,6 +706,10 @@ Permisos de customer_reviews, definidos por su migración adicional:
   sin adjunto y pendiente. authenticated tiene permiso de inserción de source y
   image_path, pero RLS exige administrador para source=chat y ruta con su UUID.
   Los permisos de moderación no permiten cambiar textos, origen ni imagen guardada.
+- Ampliación 20261102194927: DELETE de customer_reviews solo para administradores;
+  queue_deleted_review_image es un trigger SECURITY INVOKER, search_path vacío y
+  nombres cualificados. Su ejecución directa se revoca a PUBLIC/anon/authenticated.
+  Si no puede encolar una captura, se revierte la transacción del borrado de la reseña.
 
 Storage de capturas (migración 20261102192441):
 - Bucket privado review-chats, límite 1500000 bytes y MIME JPG/PNG/WebP.
@@ -746,6 +779,9 @@ Instalación existente:
   La vista Apartado y vendido usa los campos actuales y no requiere migración propia.
 - 20261102192441_review_chat_images.sql amplía reseñas existentes conservando sus
   datos; aplicar después de la migración de reseñas y antes de los assets con chats.
+- 20261102194927_delete_customer_reviews.sql agrega borrado administrativo, cola y
+  trigger de limpieza. No borra registros existentes al instalarse. Aplicar después
+  de las dos migraciones de reseñas anteriores, antes de habilitar ELIMINAR en web.
 - Aplicar únicamente los cambios pertinentes que no estén ya incorporados y
   comprobar compatibilidad con datos existentes.
 - notify pgrst, 'reload schema' permite que la API recoja columnas y RPC actualizados
@@ -862,6 +898,8 @@ Cobertura por archivo:
   escape HTML, paginación, errores, decisión concurrente y vista conjunta de prendas.
 - review-chat-images.test.cjs: tipos/límites, confirmación, ausencia de estrellas,
   carga preparada, recuperación de guardado, limpieza prudente, firma y render seguro.
+- review-deletion.test.cjs: borrado condicionado, conflictos, captura del servidor,
+  fallo/omisión de Storage, respuesta perdida y protección de referencias/rutas.
 - site-build.test.cjs: genera salida temporal y comprueba recursos, capitalización
   y exclusión de documentos internos, SQL, herramientas y aplicación separada.
 - store.test.cjs: recursos locales, configuración compartida, portadas/miniaturas,

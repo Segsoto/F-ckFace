@@ -248,6 +248,14 @@ Administración:
 4. ACTUALIZAR RESEÑAS incorpora envíos nuevos o cambios de otra sesión. VER MÁS
    RESEÑAS trae otra página: veinte por carga en el panel y seis en la tienda.
 5. Si falla una decisión, actualizar y comprobar el estado antes de reintentar.
+6. ELIMINAR está disponible en pendientes, publicadas y rechazadas. Revisar la
+   confirmación y aceptar solo si se desea borrar definitivamente la reseña y su
+   captura adjunta. CANCELAR conserva todo; RECHAZAR permite ocultarla sin borrarla.
+7. Una eliminación no se puede deshacer desde el panel. Si otra persona cambió la
+   reseña, actualizar la lista antes de intentar eliminarla nuevamente.
+8. Si falla Storage, la reseña ya eliminada no vuelve a publicarse. Usar REINTENTAR
+   LIMPIEZA DE IMÁGENES; las tareas persisten al recargar/cerrar sesión y se procesan
+   hasta veinte por intento. El panel nunca borra una imagen todavía referenciada.
 
 Añadir una captura desde el equipo:
 1. En RESEÑAS, abrir AÑADIR CAPTURA DE UN CHAT.
@@ -274,8 +282,9 @@ Las reseñas no aparecen públicamente por el solo envío. No se editan sus text
 desde el panel. El formulario no comprueba identidad ni compra y no implementa
 CAPTCHA; revisar el contenido antes de aceptarlo. Nunca publicar datos personales
 incluidos accidentalmente. Para usar esta función, el encargado técnico debe aplicar
-las dos migraciones de reseñas indicadas en README, en orden, y publicar los archivos
-web relacionados. Si la primera ya está aplicada, ejecutar solo la de capturas.
+las migraciones de reseñas indicadas en README, en orden, y publicar los archivos
+web relacionados. No repetir las ya instaladas. El borrado requiere la actualización
+delete_customer_reviews; la confirmación del panel no reemplaza los permisos de Supabase.
 
 18. SOPORTE
 -----------

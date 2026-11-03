@@ -439,6 +439,8 @@ button:disabled { opacity: .6; cursor: wait; }
 .review-author { display: grid; gap: 8px; overflow-wrap: anywhere; }
 .review-author span { color: #555; font-size: 10px; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.review-delete { color: #fff; background: #9e1013; border-color: #9e1013; }
+.review-cleanup-panel { padding: 18px; border: 1px solid #999; margin-top: 24px; }
 .chat-review-editor { border: 1px solid #999; margin: 24px 0; padding: 18px; }
 .chat-review-editor summary { cursor: pointer; font-weight: 500; min-height: 28px; padding: 6px 0; }
 .chat-review-editor h3 { font: 700 26px var(--condensed); margin: 0; }

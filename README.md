@@ -118,6 +118,17 @@ rechazar/retirar. Solo el equipo autorizado en `admin_profiles` puede moderar; l
 visitantes solo leen las aprobadas. No hay correo, teléfono, verificación de compra,
 CAPTCHA ni límite de frecuencia del servidor. La moderación no impide envíos masivos.
 
+Para permitir **Eliminar reseñas**, aplicar después de las dos migraciones previas
+[`supabase/migrations/20261102194927_delete_customer_reviews.sql`](supabase/migrations/20261102194927_delete_customer_reviews.sql)
+y publicar también `assets/js/shared/review-deletion.js` con el panel y su CSS.
+No elimina datos existentes al instalarse. Concede DELETE solo a administradores y
+crea `review_image_cleanup`: un trigger SECURITY INVOKER registra la captura en la
+misma transacción del borrado. El navegador la elimina mediante Storage API; si falla,
+la tarea persiste y se puede reintentar desde Reseñas, veinte por lote. El servidor no
+permite cerrar una tarea si el objeto aún existe. No usar las herramientas históricas
+de prendas para estas imágenes. **Rechazar** conserva la reseña; **Eliminar** exige
+confirmación y borra definitivamente. No hay restauración desde el panel.
+
 Verificá después de instalar: envío pendiente oculto, aprobación visible, rechazo
 oculto, ausencia de acceso a pendientes para visitantes/usuarios sin perfil, filtros
 y paginación. `npm test` incluye regresiones del flujo con respuestas simuladas;

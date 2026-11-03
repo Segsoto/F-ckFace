@@ -5,6 +5,11 @@
   const more = document.getElementById("moreAdminReviews");
   const message = document.getElementById("reviewModerationMessage");
   const reviews = window.CustomerReviews;
+  const deletion = window.ReviewDeletion;
+  const cleanupPanel = document.getElementById("reviewImageCleanupPanel");
+  const cleanupHelp = document.getElementById("reviewImageCleanupHelp");
+  const retryImages = document.getElementById("retryReviewImages");
+  let cleanupBusy = false, cleanupOperation = 0;
   const chatForm = document.getElementById("chatReviewForm");
   const chatFile = document.getElementById("chatReviewImage");
   const chatPreview = document.getElementById("chatReviewPreview");
@@ -34,7 +39,7 @@
   function render() {
     list.innerHTML = rows.map((review) => {
       const id = reviews.escape(review.id);
-      const actions = `<div class="review-actions">${review.status !== "approved" ? `<button type="button" data-review-id="${id}" data-review-action="approved">ACEPTAR Y PUBLICAR</button>` : ""}${review.status !== "rejected" ? `<button type="button" class="secondary" data-review-id="${id}" data-review-action="rejected">${review.status === "approved" ? "RECHAZAR Y RETIRAR" : "RECHAZAR"}</button>` : ""}</div>`;
+      const actions = `<div class="review-actions">${review.status !== "approved" ? `<button type="button" data-review-id="${id}" data-review-action="approved">ACEPTAR Y PUBLICAR</button>` : ""}${review.status !== "rejected" ? `<button type="button" class="secondary" data-review-id="${id}" data-review-action="rejected">${review.status === "approved" ? "RECHAZAR Y RETIRAR" : "RECHAZAR"}</button>` : ""}<button type="button" class="review-delete" data-review-id="${id}" data-review-action="delete">ELIMINAR</button></div>`;
       return reviews.card(review, actions);
     }).join("") || "<p>NO HAY RESEÑAS EN ESTE ESTADO.</p>";
   }
@@ -53,6 +58,7 @@
       render();
       message.textContent = `${rows.length} ${rows.length === 1 ? "reseña cargada" : "reseñas cargadas"}${result.more ? "; hay más por revisar" : ""}.`;
       message.dataset.state = "success";
+      await loadCleanup();
     } catch (error) {
       if (version !== request) return;
       message.textContent = "No se pudieron cargar las reseñas. Comprobá la conexión, tu sesión y que esté instalada la actualización de reseñas. Usá ACTUALIZAR RESEÑAS para reintentar.";
@@ -62,6 +68,34 @@
   refresh.addEventListener("click", () => load());
   more.addEventListener("click", () => load(false));
   filter.addEventListener("change", () => load());
+  async function loadCleanup() {
+    if (!client) return;
+    const version = request;
+    try {
+      const jobs = await deletion.pending(client);
+      if (version !== request || !client) return;
+      cleanupPanel.hidden = !jobs.length;
+      cleanupHelp.textContent = jobs.length ? `${jobs.length} ${jobs.length === 1 ? "captura pendiente" : "capturas pendientes"} de borrar. Reintentá la limpieza; se procesan hasta 20 por lote.` : "";
+    } catch {
+      if (version !== request || !client) return;
+      cleanupPanel.hidden = false;
+      cleanupHelp.textContent = "No se pudieron consultar las imágenes pendientes. Comprobá la conexión y que esté instalada la actualización para eliminar reseñas.";
+    }
+  }
+  retryImages.addEventListener("click", async () => {
+    if (!client || cleanupBusy) return;
+    const operation = ++cleanupOperation;
+    cleanupBusy = true;
+    retryImages.disabled = true;
+    try {
+      const jobs = await deletion.pending(client);
+      await deletion.cleanup(client, jobs);
+      if (operation !== cleanupOperation || !client) return;
+      await loadCleanup();
+    } catch {
+      if (operation === cleanupOperation && client) cleanupHelp.textContent = "No se pudo completar la limpieza. Las tareas se conservan para reintentar.";
+    } finally { if (operation === cleanupOperation) { cleanupBusy = false; retryImages.disabled = false; } }
+  });
   chatForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (savingChat || !client || !chatForm.reportValidity()) return;
@@ -97,13 +131,22 @@
     if (!button || busy) return;
     const review = rows.find((item) => item.id === button.dataset.reviewId);
     if (!review || !client) return;
+    const isDelete = button.dataset.reviewAction === "delete";
+    if (isDelete && !window.confirm(`¿Eliminar definitivamente la reseña de ${review.customer_name}${review.image_path ? " y su captura adjunta" : ""}? Esta acción no se puede deshacer.`)) return;
     const version = request;
     busy = true;
     list.querySelectorAll("button").forEach((item) => { item.disabled = true; });
     try {
-      await reviews.moderate(client, review, button.dataset.reviewAction);
+      const result = isDelete ? await deletion.remove(client, review) : await reviews.moderate(client, review, button.dataset.reviewAction);
       if (version !== request) return;
-      await load();
+      const reloading = load();
+      const reloadVersion = request;
+      await reloading;
+      if (isDelete && reloadVersion === request && client) {
+        const loadError = message.dataset.state === "error" ? ` ${message.textContent}` : "";
+        message.textContent = (result.cleanupPending ? "Reseña eliminada. La captura quedó pendiente de limpieza; usá REINTENTAR LIMPIEZA DE IMÁGENES." : "Reseña eliminada definitivamente.") + loadError;
+        message.dataset.state = result.cleanupPending || loadError ? "error" : "success";
+      }
     } catch (error) {
       if (version !== request) return;
       message.textContent = error.message;
@@ -118,6 +161,11 @@
       rows = [];
       ++request;
       ++uploadRequest;
+      ++cleanupOperation;
+      cleanupBusy = false;
+      cleanupPanel.hidden = true;
+      cleanupHelp.textContent = "";
+      retryImages.disabled = false;
       savingChat = busy = false;
       list.innerHTML = "";
       message.textContent = "";

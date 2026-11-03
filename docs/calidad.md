@@ -43,6 +43,13 @@ un objeto referenciado. Probar respuesta perdida tras guardado y fallo de consul
 sin eliminar la imagen. Rechazar debe impedir firmas nuevas; las emitidas duran hasta
 cinco minutos. Esta segunda migración es requisito del frontend con capturas.
 
+Para eliminar reseñas: cancelar no debe enviar peticiones; confirmar debe eliminar
+pendientes/publicadas/rechazadas con control de estado y fecha de revisión. Probar
+capturas con fallo de Storage, persistencia tras recarga y reintento. La reseña debe
+permanecer eliminada si falla la limpieza, y la tarea solo desaparecer cuando el
+objeto ya no exista. Verificar permisos anon, usuario sin perfil y administrador;
+si el trigger no puede registrar la tarea, el borrado completo debe revertirse.
+
 Antes de publicar en Vercel, ejecutar `npm run build` y servir únicamente `dist/`.
 La prueba `site-build.test.cjs` comprueba las rutas públicas y que no se incluyan
 documentos, SQL, herramientas ni Camisadel10. Tras publicar, contrastar HTML/JS/CSS
